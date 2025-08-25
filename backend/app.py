@@ -17,9 +17,6 @@ load_dotenv()
 
 app = FastAPI(title="Invoice Extractor", version="0.1.0")
 
-# Serve frontend
-app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
-
 # CORS (if you host frontend elsewhere)
 app.add_middleware(
     CORSMiddleware,
@@ -60,3 +57,6 @@ async def extract(file: UploadFile = File(...), method: Optional[str] = Query("a
 
     validations = validate_extraction(result)
     return ExtractResponse(data=result, method=used_method, validations=validations)
+
+    # Serve frontend
+    app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
