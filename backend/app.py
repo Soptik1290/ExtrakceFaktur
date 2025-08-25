@@ -47,7 +47,7 @@ async def extract(file: UploadFile = File(...), method: Optional[str] = Query("a
         try:
             result = extract_fields_llm(text)
             used_method = "llm"
-        except Exception as e:
+        except Exception:
             # Fallback to heuristics
             result = extract_fields_heuristic(text)
             used_method = "heuristic (fallback)"
@@ -58,5 +58,7 @@ async def extract(file: UploadFile = File(...), method: Optional[str] = Query("a
     validations = validate_extraction(result)
     return ExtractResponse(data=result, method=used_method, validations=validations)
 
-    # Serve frontend
-    app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+# --- Serve frontend (mounted LAST so /api/* isn't shadowed) ---
+from pathlib import Path as _Path
+_FRONTEND_DIR = str((_Path(__file__).resolve().parents[1] / "frontend").resolve())
+app.mount("/", StaticFiles(directory=_FRONTEND_DIR, html=True), name="frontend")
