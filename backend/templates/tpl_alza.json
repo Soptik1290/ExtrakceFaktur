@@ -15,12 +15,12 @@
     "datum_splatnosti": "(?:Datum\\s*splatnosti|Splatnost)[:\\s]+([0-9.\\-/ ]{8,10})",
     "duzp": "(?:Datum\\s*uskut\\.\\s*zdaň\\.\\s*plněn[íi]|Datum\\s*uskutečnění\\s*zdanitelného\\s*plnění|DUZP)[:\\s]+([0-9.\\-/ ]{8,10})",
     "castka_s_dph": "Celkem[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)",
-    "castka_bez_dph": "(?:Základ\\s*daně|Bez\\s*DPH)[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)",
-    "dph": "(?:DPH\\b|Vyčíslení\\s*DPH.*?:)\\s*(?:\\d{1,2}\\s*%[:\\s]*)?([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)",
+    "castka_bez_dph": "21\\s*%[^\\n]*?\\b([0-9 \\u00A0.,]+)\\b",
+    "dph": "21\\s*%[^\\n]*?\\b[0-9 \\u00A0.,]+\\b[^\\n]*?\\b([0-9 \\u00A0.,]+)\\b",
     "dodavatel_nazev": "(Alza\\.cz\\s*a\\.s\\.)",
     "dodavatel_ico": "\\bI[ČC]:\\s*([0-9]{8})",
     "dodavatel_dic": "\\bDI[ČC]:\\s*([A-Z]{2}\\d{8,10})",
-    "dodavatel_adresa": "Alza\\.cz\\s*a\\.s\\.\\s*\\n(.*)"
+    "dodavatel_adresa": "Alza\\.cz\\s*a\\.s\\.\\s*(?:.*?\\n)?([^\\n]+?)\\s*(?=(?:I[ČC]|DI[ČC]|VAT|Daňový|Faktura\\b))"
   },
   "supplier_defaults": {
     "nazev": "Alza.cz a.s.",
