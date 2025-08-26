@@ -81,26 +81,50 @@ body {
 
 /* Informace o souboru */
 .file-info {
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
   font-size: 0.9rem;
   color: #495057;
-  background: #f8f9fa;
-  padding: 0.5rem;
-  border-radius: 4px;
-  border: 1px solid #e9ecef;
+  background: #f0f4f8;
+  padding: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #d0d7de;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+}
+
+.file-info:hover {
+  background: #e6f0fa;
+  border-color: #a8c7fa;
 }
 
 .file-info span {
   display: block;
   margin-bottom: 0.25rem;
+  padding-left: 0.25rem;
+  border-left: 3px solid #3b82f6;
 }
 
 .file-info #file-name {
   font-weight: 600;
+  color: #1e3a8a;
+}
+
+.file-info #file-size {
+  color: #6c757d;
 }
 
 .hidden {
   display: none;
+}
+
+/* Animace pro zobrazení informací o souboru */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.file-info:not(.hidden) {
+  animation: fadeIn 0.3s ease-out forwards;
 }
 
 .card h2 {

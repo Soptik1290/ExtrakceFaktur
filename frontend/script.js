@@ -174,17 +174,17 @@ function displayFileInfo(file) {
   const fileSizeEl = document.getElementById('file-size');
   
   // Zobrazení názvu souboru
-  fileNameEl.textContent = `Název: ${file.name}`;
+  fileNameEl.textContent = `📄 Název: ${file.name}`;
   
   // Zobrazení velikosti souboru v KB nebo MB
   const sizeInKB = file.size / 1024;
   let sizeText = '';
   
   if (sizeInKB < 1024) {
-    sizeText = `Velikost: ${sizeInKB.toFixed(2)} KB`;
+    sizeText = `📊 Velikost: ${sizeInKB.toFixed(2)} KB`;
   } else {
     const sizeInMB = sizeInKB / 1024;
-    sizeText = `Velikost: ${sizeInMB.toFixed(2)} MB`;
+    sizeText = `📊 Velikost: ${sizeInMB.toFixed(2)} MB`;
   }
   
   fileSizeEl.textContent = sizeText;
