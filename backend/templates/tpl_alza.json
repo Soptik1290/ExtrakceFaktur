@@ -1,30 +1,31 @@
 {
-  "name": "Alza.cz a.s.",
+  "name": "Alza.cz a.s. (CZ)",
   "required_keywords": [
     "Alza.cz",
-    "IČO 27082440"
+    "Daňový doklad"
   ],
   "optional_keywords": [
-    "Daňový doklad",
-    "Faktura",
-    "VS",
-    "Variabilní symbol"
+    "Variabilní symbol",
+    "Bankovní účet",
+    "Celkem:"
   ],
   "fields": {
-    "variabilni_symbol": "(?:VS|Variabilní\\s*symbol)[:\\s]+(\\d{6,12})",
-    "datum_vystaveni": "(?:Datum\\s*vystavení|Vystaveno)[:\\s]+([0-9.\\-/ ]{8,})",
-    "datum_splatnosti": "(?:Splatnost|Datum splatnosti)[:\\s]+([0-9.\\-/ ]{8,})",
-    "duzp": "(?:DUZP|Datum uskutečnění zdanitelného plnění)[:\\s]+([0-9.\\-/ ]{8,})",
-    "castka_bez_dph": "(?:Bez DPH|Základ daně)[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)?",
-    "dph": "DPH[^:]*[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)?",
-    "castka_s_dph": "(?:K úhradě|Celkem k úhradě|Celkem)[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)?",
-    "dodavatel_dic": "(?:DIČ|VAT)[:\\s]+(CZ\\d{8,10})",
-    "dodavatel_adresa": "Alza\\.cz.*?\\n(.*)"
+    "variabilni_symbol": "Variabiln[íi]\\s*symbol[:\\s]+(\\d{6,12})",
+    "datum_vystaveni": "(?:Datum\\s*vystaven[íi]|Vystaven[íi])[:\\s]+([0-9.\\-/ ]{8,10})",
+    "datum_splatnosti": "(?:Datum\\s*splatnosti|Splatnost)[:\\s]+([0-9.\\-/ ]{8,10})",
+    "duzp": "(?:Datum\\s*uskut\\.\\s*zdaň\\.\\s*plněn[íi]|Datum\\s*uskutečnění\\s*zdanitelného\\s*plnění|DUZP)[:\\s]+([0-9.\\-/ ]{8,10})",
+    "castka_s_dph": "Celkem[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)",
+    "castka_bez_dph": "(?:Základ\\s*daně|Bez\\s*DPH)[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)",
+    "dph": "(?:DPH\\b|Vyčíslení\\s*DPH.*?:)\\s*(?:\\d{1,2}\\s*%[:\\s]*)?([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)",
+    "dodavatel_nazev": "(Alza\\.cz\\s*a\\.s\\.)",
+    "dodavatel_ico": "\\bI[ČC]:\\s*([0-9]{8})",
+    "dodavatel_dic": "\\bDI[ČC]:\\s*([A-Z]{2}\\d{8,10})",
+    "dodavatel_adresa": "Alza\\.cz\\s*a\\.s\\.\\s*\\n(.*)"
   },
   "supplier_defaults": {
     "nazev": "Alza.cz a.s.",
-    "ico": "27082440",
-    "dic": "CZ27082440",
+    "ico": null,
+    "dic": null,
     "adresa": null
   }
 }

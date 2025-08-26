@@ -1,0 +1,31 @@
+{
+  "name": "Helena Vocásková – generický vzor (CZ)",
+  "required_keywords": [
+    "FAKTURA",
+    "Faktura č."
+  ],
+  "optional_keywords": [
+    "CELKEM K ÚHRADĚ",
+    "Variabilní symbol",
+    "Číslo účtu"
+  ],
+  "fields": {
+    "variabilni_symbol": "(?:Variabiln[íi]\\s*symbol|Jako\\s*variabilní\\s*symbol.*?uveďte.*?číslo\\s*faktury)[^0-9]*(\\d{4,12})",
+    "datum_vystaveni": "(?:Vystaven[íi]|Datum\\s*vystaven[íi])[:\\s]+([0-9.\\-/ ]{8,10})",
+    "datum_splatnosti": "(?:Splatnost[iy]?|Datum\\s*splatnosti)[:\\s]+([0-9.\\-/ ]{8,10})",
+    "duzp": "(?:DUZP|Datum\\s*uskutečnění\\s*zdanitelného\\s*plnění)[:\\s]+([0-9.\\-/ ]{8,10})",
+    "castka_s_dph": "(?:CELKEM\\s*K\\s*ÚHRADĚ|Celkem\\s*k\\s*úhradě|Celkem)[:\\s]*([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)",
+    "castka_bez_dph": "(?:Cena\\s*celkem|Bez\\s*DPH|Základ\\s*daně)\\s*[:\\s]*([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)",
+    "dph": "DPH[^:]*[:\\s]*([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)",
+    "dodavatel_nazev": "^\\s*([A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽa-záčďéěíňóřšťúůýž][^\\n]+Voc[áa]skov[áa])",
+    "dodavatel_ico": "\\bI[ČC]:\\s*([0-9]{8})",
+    "dodavatel_dic": "\\bDI[ČC]:\\s*([A-Z]{2}\\d{8,10})",
+    "dodavatel_adresa": "Voc[áa]skov[áa].*\\n(.*)"
+  },
+  "supplier_defaults": {
+    "nazev": null,
+    "ico": null,
+    "dic": null,
+    "adresa": null
+  }
+}
