@@ -1,4 +1,40 @@
 
+// --- Loading overlay helpers
+function showLoading() {
+  const o = document.getElementById('loadingOverlay');
+  if (o) o.classList.remove('hidden');
+}
+function hideLoading() {
+  const o = document.getElementById('loadingOverlay');
+  if (o) o.classList.add('hidden');
+}
+
+// Show selected file name
+document.addEventListener('change', (e) => {
+  if (e.target && e.target.id === 'file' && e.target.files && e.target.files.length) {
+    const f = e.target.files[0];
+    const nameEl = document.getElementById('fileName');
+    if (nameEl) nameEl.textContent = `${f.name} (${(f.size/1024).toFixed(1)} kB)`;
+  }
+});
+
+function showSuccessToast(text = "Hotovo – faktura zpracována") {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  const txt = toast.querySelector('.toast-text');
+  if (txt) txt.textContent = text;
+  toast.classList.remove('hidden', 'fadeout');
+  void toast.offsetWidth; // reflow
+  toast.classList.add('show');
+  setTimeout(() => {
+    toast.classList.add('fadeout');
+    setTimeout(() => {
+      toast.classList.remove('show', 'fadeout');
+      toast.classList.add('hidden');
+    }, 400);
+  }, 1600);
+}
+
 // --- Global state
 let lastData = null;
 
@@ -53,7 +89,8 @@ function rowWithCopy(label, value, computed) {
   return tr;
 }
 
-async function extract() {
+\1
+  try { showLoading(); } catch (e) {}
   const file = document.getElementById('file').files[0];
   const method = document.getElementById('method').value;
   if (!file) { 
@@ -143,11 +180,12 @@ async function extract() {
   
   // Skryjeme načítací overlay
   setTimeout(() => {
-    document.getElementById('loadingOverlay').style.display = 'none';
+    hideLoading();
   }, 500);
 }
 
-async function doExport() {
+\1
+  try { showLoading(); } catch (e) {}
   if (!lastData) { 
     toast('⚠️ Nejdříve proveďte extrakci dat');
     return; 
