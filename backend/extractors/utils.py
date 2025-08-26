@@ -9,13 +9,11 @@ def normalize_date(s):
     if not s:
         return None
     s = str(s).strip()
-    # Try ISO
     try:
         dt = dateparser.parse(s, dayfirst=True, yearfirst=False)
         return dt.strftime("%Y-%m-%d")
     except Exception:
         pass
-    # direct regex dd.mm.yyyy
     m = re.search(r"\b(\d{1,2})[.\-/ ](\d{1,2})[.\-/ ](\d{2,4})\b", s)
     if m:
         d, mth, y = m.groups()
@@ -31,7 +29,6 @@ def parse_amount(s):
     if s is None:
         return None
     s = str(s).strip()
-    # remove spaces/grouping, handle comma decimal
     s = s.replace("\u00A0", " ").replace(" ", "")
     s = re.sub(r"[A-Z€$₤£KčCZK]", "", s, flags=re.I)
     s = s.replace(",", ".")
@@ -44,7 +41,6 @@ def parse_amount(s):
         return None
 
 def pick_nearby(text, keywords, value_regex, window=200):
-    # returns first match of value_regex in a window near any keyword
     for kw in keywords:
         for m in re.finditer(kw, text, re.I):
             start = max(0, m.start()-window//2)

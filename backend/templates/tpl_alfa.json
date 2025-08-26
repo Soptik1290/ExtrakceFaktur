@@ -1,0 +1,30 @@
+{
+  "name": "Alfa s.r.o. (CZ)",
+  "required_keywords": [
+    "Alfa",
+    "ICO"
+  ],
+  "optional_keywords": [
+    "Variabilní symbol",
+    "Vystaveno"
+  ],
+  "fields": {
+    "variabilni_symbol": "(?:VS|Variabilní\\s*symbol)[:\\s]+(\\d{6,12})",
+    "datum_vystaveni": "(?:Vystaveno|Datum vystavení)[:\\s]+([0-9.\\-/ ]{8,})",
+    "datum_splatnosti": "Splatnost[:\\s]+([0-9.\\-/ ]{8,})",
+    "duzp": "DUZP[:\\s]+([0-9.\\-/ ]{8,})",
+    "castka_bez_dph": "(?:Bez DPH|Základ daně).*?:\\s*([0-9 \\u00A0.,]+)",
+    "dph": "(?:DPH)[^:]*:\\s*([0-9 \\u00A0.,]+)",
+    "castka_s_dph": "(?:Celkem|K úhradě)[:\\s]+([0-9 \\u00A0.,]+)",
+    "dodavatel_nazev": "(Alfa\\s*s\\.r\\.o\\.)",
+    "dodavatel_ico": "ICO[:\\s]+(\\d{8})",
+    "dodavatel_dic": "DIC[:\\s]+([A-Z]{2}\\d{8,10})",
+    "dodavatel_adresa": "Alfa.*?\\n(.*)"
+  },
+  "supplier_defaults": {
+    "nazev": "Alfa s.r.o.",
+    "ico": null,
+    "dic": null,
+    "adresa": null
+  }
+}

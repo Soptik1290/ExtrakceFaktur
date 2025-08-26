@@ -20,27 +20,24 @@ def make_pdf(path, blocks):
         y -= 10
     c.showPage(); c.save()
 
-# Five synthetic invoices (CZ + EN mix, different wording)
 samples = [
     ("invoice1.pdf", [
         ("Dodavatel", ["ACME s.r.o.", "IČO: 12345679", "DIČ: CZ12345679", "Ulice 1, Praha"]),
-        ("Odběratel", ["Beta a.s.", "IČO: 87654321", "DIČ: CZ87654321"]),
-        ("Platební údaje", ["Variabilní symbol: 2024001234", "IBAN: CZ65 0800 0000 0000 1234 5678"]),
+        ("Platební údaje", ["Variabilní symbol: 2024001234"]),
         ("Datumy", ["Datum vystavení: 12.06.2025", "Splatnost: 26.06.2025", "DUZP: 12.06.2025"]),
         ("Částky", ["Základ daně (bez DPH): 10 000,00 Kč", "DPH 21%: 2 100,00 Kč", "Celkem k úhradě: 12 100,00 Kč"]),
     ]),
     ("invoice2.pdf", [
         ("Supplier", ["Globex Ltd.", "VAT: DE123456789", "Alt-Str. 5, Berlin"]),
-        ("Buyer", ["Contoso Sp. z o.o.", "VAT: PL9876543210"]),
-        ("Payment", ["VS: 45678901", "SWIFT: KOMBCZPP"]),
+        ("Payment", ["VS: 45678901"]),
         ("Dates", ["Issue date: 2025-07-01", "Due date: 2025-07-15", "Tax point: 2025-07-01"]),
         ("Amounts", ["Subtotal: 2,500.00 EUR", "VAT 21%: 525.00 EUR", "Amount due: 3,025.00 EUR"]),
     ]),
     ("invoice3.pdf", [
         ("Dodavatel", ["Alfa s.r.o.", "ICO: 27074358", "DIC: CZ27074358", "Brno"]),
-        ("Platební údaje", ["Variabilní symbol 98765432", "VS: 98765432"]),
+        ("Platební údaje", ["VS: 98765432"]),
         ("Datumy", ["Vystaveno: 1.8.2025", "Splatnost: 15.8.2025", "DUZP: 1.8.2025"]),
-        ("Sazby", ["Bez DPH: 4 150,50 Kč", "DPH: 871,61 Kč", "Celkem: 5 022,11 Kč"]),
+        ("Souhrn", ["Bez DPH: 4 150,50 Kč", "DPH: 871,61 Kč", "Celkem: 5 022,11 Kč"]),
     ]),
     ("invoice4.pdf", [
         ("Supplier", ["Omega LLC", "VAT: CZ12345678", "Some Street 7, Prague"]),
@@ -56,6 +53,7 @@ samples = [
     ]),
 ]
 
+os.makedirs(OUT_DIR, exist_ok=True)
 for fname, blocks in samples:
     make_pdf(os.path.join(OUT_DIR, fname), blocks)
 

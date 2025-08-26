@@ -8,13 +8,14 @@
 </head>
 <body>
   <div class="container">
-    <h1>Invoice Extractor (AI + Heuristics)</h1>
+    <h1>Invoice Extractor (AI + Template + Heuristics)</h1>
     <p>Upload an invoice (PDF/JPG/PNG). Choose method or leave Auto.</p>
     <div class="card">
       <div class="row">
         <input type="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff" />
         <select id="method">
           <option value="auto" selected>Auto</option>
+          <option value="template">Template</option>
           <option value="llm">LLM (AI)</option>
           <option value="heuristic">Heuristic only</option>
         </select>
@@ -32,18 +33,13 @@
         </div>
         <div>
           <h3>Parsed Table</h3>
-          <table id="tbl">
-            <tbody></tbody>
-          </table>
+          <table id="tbl"><tbody></tbody></table>
           <h3>Validation</h3>
           <ul id="valid"></ul>
         </div>
       </div>
     </div>
 
-    <footer>
-      <a href="https://github.com/" target="_blank" rel="noreferrer">Starter built for demo usage</a>
-    </footer>
   </div>
   <script src="/script.js"></script>
 </body>

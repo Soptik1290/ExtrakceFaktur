@@ -6,25 +6,14 @@ async function extract() {
   const fd = new FormData();
   fd.append('file', file);
 
-  const res = await fetch(`/api/extract?method=${encodeURIComponent(method)}`, {
-    method: 'POST',
-    body: fd
-  });
-  if (!res.ok) {
-    alert('Extraction failed.'); return;
-  }
+  const res = await fetch(`/api/extract?method=${encodeURIComponent(method)}`, { method: 'POST', body: fd });
+  if (!res.ok) { alert('Extraction failed.'); return; }
   const data = await res.json();
   document.getElementById('result').classList.remove('hidden');
+  document.getElementById('jsonOut').textContent = JSON.stringify(data, null, 2);
 
-  // JSON out
-  const pretty = JSON.stringify(data, null, 2);
-  document.getElementById('jsonOut').textContent = pretty;
-
-  // Table
-  const tbody = document.querySelector('#tbl tbody');
-  tbody.innerHTML = '';
-  const d = data.data || {};
-  const sup = d.dodavatel || {};
+  const tbody = document.querySelector('#tbl tbody'); tbody.innerHTML='';
+  const d = data.data || {}; const sup = d.dodavatel || {};
   const rows = [
     ['Variabilní symbol', d.variabilni_symbol],
     ['Datum vystavení', d.datum_vystaveni],
@@ -38,18 +27,12 @@ async function extract() {
     ['Dodavatel – IČO', sup.ico],
     ['Dodavatel – DIČ', sup.dic],
     ['Dodavatel – adresa', sup.adresa],
-    ['Confidence', d.confidence]
+    ['Confidence', d.confidence],
+    ['Template', d._template || '']
   ];
-  rows.forEach(([k,v]) => {
-    const tr = document.createElement('tr');
-    const td1 = document.createElement('td'); td1.textContent = k;
-    const td2 = document.createElement('td'); td2.textContent = (v ?? '').toString();
-    tr.appendChild(td1); tr.appendChild(td2); tbody.appendChild(tr);
-  });
+  rows.forEach(([k,v]) => { const tr=document.createElement('tr'); const a=document.createElement('td'); a.textContent=k; const b=document.createElement('td'); b.textContent=(v??'').toString(); tr.append(a,b); tbody.append(tr); });
 
-  // Validations
-  const valUl = document.getElementById('valid');
-  valUl.innerHTML = '';
+  const valUl = document.getElementById('valid'); valUl.innerHTML='';
   const v = data.validations || {};
   const items = [
     ['Variabilní symbol', v.variabilni_symbol],
@@ -65,15 +48,10 @@ async function extract() {
     valUl.appendChild(li);
   });
 
-  // Download JSON
-  const btn = document.getElementById('downloadJson');
-  btn.onclick = () => {
+  document.getElementById('downloadJson').onclick = () => {
     const blob = new Blob([JSON.stringify(d, null, 2)], {type: 'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = (file.name.replace(/\.[^.]+$/,'') || 'invoice') + '.json';
-    a.click();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = (file.name.replace(/\.[^.]+$/,'') || 'invoice') + '.json'; a.click();
   };
 }
-
 document.getElementById('go').addEventListener('click', extract);
