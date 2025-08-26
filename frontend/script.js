@@ -19,28 +19,16 @@ function toast(msg, type = 'success') {
 
 // Success overlay helper
 function showSuccessOverlay() {
-  // Vytvoříme success overlay
-  let successOverlay = document.getElementById('successOverlay');
-  if (!successOverlay) {
-    successOverlay = document.createElement('div');
-    successOverlay.id = 'successOverlay';
-    successOverlay.className = 'success-overlay';
-    successOverlay.innerHTML = `
-      <div class="success-content">
-        <div class="success-icon">✅</div>
-        <div class="success-text">Zpracování dokončeno!</div>
-      </div>
-    `;
-    document.body.appendChild(successOverlay);
+  const successOverlay = document.getElementById('successOverlay');
+  if (successOverlay) {
+    // Zobrazíme overlay
+    successOverlay.classList.add('show');
+    
+    // Automaticky skryjeme po 2 sekundách s fade-out efektem
+    setTimeout(() => {
+      successOverlay.classList.remove('show');
+    }, 2000);
   }
-  
-  // Zobrazíme overlay
-  successOverlay.classList.add('show');
-  
-  // Automaticky skryjeme po 2 sekundách s fade-out efektem
-  setTimeout(() => {
-    successOverlay.classList.remove('show');
-  }, 2000);
 }
 
 // Copy helper
@@ -105,8 +93,7 @@ async function extract() {
       body: fd
     });
     if (!res.ok) { 
-      toast('❌ Extrakce se nezdařila');
-      return; 
+      throw new Error(`HTTP error! status: ${res.status}`);
     }
     const data = await res.json();
     lastData = data;
@@ -174,14 +161,19 @@ async function extract() {
     // Explicitně zobrazíme hlášku o úspěšné extrakci
     toast('✅ Extrakce dokončena úspěšně');
     
+    // Skryjeme loading overlay
+    if (loadingOverlay) {
+      loadingOverlay.classList.add('hidden');
+    }
+    
     // Zobrazíme success overlay s fade-out efektem
     showSuccessOverlay();
     
   } catch (error) {
     console.error('Chyba při extrakci:', error);
     toast('❌ Nastala chyba při zpracování faktury', 'error');
-  } finally {
-    // Skryjeme loading overlay
+    
+    // Skryjeme loading overlay při chybě
     if (loadingOverlay) {
       loadingOverlay.classList.add('hidden');
     }
@@ -215,8 +207,7 @@ async function doExport() {
       body: JSON.stringify(payload)
     });
     if (!res.ok) { 
-      toast('❌ Export se nezdařil');
-      return; 
+      throw new Error(`HTTP error! status: ${res.status}`);
     }
     const blob = await res.blob();
     const ext = fmt === 'xlsx' ? 'xlsx' : (fmt === 'csv' ? 'csv' : (fmt === 'txt' ? 'txt' : 'json'));
@@ -224,14 +215,24 @@ async function doExport() {
     a.href = URL.createObjectURL(blob); a.download = `${name}.${ext}`; a.click();
     toast('💾 Soubor byl stažen');
     
+    // Skryjeme loading overlay
+    if (loadingOverlay) {
+      loadingOverlay.classList.add('hidden');
+      // Vrátíme původní text
+      const loadingText = loadingOverlay.querySelector('.loading-text');
+      if (loadingText) {
+        loadingText.textContent = 'Probíhá zpracování dokumentu...';
+      }
+    }
+    
     // Zobrazíme success overlay
     showSuccessOverlay();
     
   } catch (error) {
     console.error('Chyba při exportu:', error);
     toast('❌ Nastala chyba při exportu dat', 'error');
-  } finally {
-    // Skryjeme loading overlay
+    
+    // Skryjeme loading overlay při chybě
     if (loadingOverlay) {
       loadingOverlay.classList.add('hidden');
       // Vrátíme původní text
