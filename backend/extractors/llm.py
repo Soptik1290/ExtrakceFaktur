@@ -24,8 +24,18 @@ Jsi extrakční AI pro faktury (CZ/EN). Vrať POUZE JSON dle schématu:
     "nazev": "string|null", "ico": "string|null", "dic": "string|null", "adresa": "string|null"
   }},
   "mena": "string|null",
+  "platba_zpusob": "string|null",
+  "banka_prijemce": "string|null",
+  "ucet_prijemce": "string|null",
   "confidence": 0.0
 }}
+
+Pravidla:
+- Datumy normalizuj na YYYY-MM-DD.
+- Částky vracej jako čísla (pokud lze), jinak string.
+- Číslo účtu může být ve formátu '123-123456789/0100', '2171532/0800', IBAN nebo BIC – vrať jak je na faktuře.
+- Pokud něco chybí, dej null a adekvátně sniž confidence.
+
 TEXT:
 -----
 {text}
@@ -47,6 +57,7 @@ def extract_fields_llm(text: str) -> dict:
     m = re.search(r"\{.*\}", raw, re.S)
     if m: raw = m.group(0)
     data = json.loads(raw)
+
     for k in ["datum_vystaveni","datum_splatnosti","duzp"]:
         data[k] = normalize_date(data.get(k))
     def _num(v):
@@ -55,8 +66,10 @@ def extract_fields_llm(text: str) -> dict:
         return parse_amount(str(v))
     for k in ["castka_bez_dph","dph","castka_s_dph"]:
         data[k] = _num(data.get(k))
+
     data.setdefault("dodavatel", {"nazev": None, "ico": None, "dic": None, "adresa": None})
-    data.setdefault("mena", None)
+    for k in ["mena","platba_zpusob","banka_prijemce","ucet_prijemce"]:
+        data.setdefault(k, None)
     data.setdefault("confidence", 0.75)
     data.setdefault("variabilni_symbol", None)
     return data

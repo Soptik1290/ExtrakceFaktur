@@ -14,7 +14,7 @@ def _find_label_value(lines, label_keywords, value_regex, max_dist=2):
         if label_re.search(line):
             window = "\n".join(lines[max(0, i - max_dist): i + max_dist + 1])
             for m in val_re.finditer(window):
-                candidates.append(m.group(0))
+                candidates.append(m.group(1) if m.groups() else m.group(0))
     return first(candidates)
 
 def _find_any(regex, text):
@@ -105,6 +105,17 @@ def extract_fields_heuristic(text: str) -> dict:
 
     cur = _currency_near_amount(lines) or detect_currency(joined)
 
+    # --- Payment info ---
+    platba = _find_label_value(lines,
+        [r"zp[uů]sob [uú]hrady", r"zp[uů]sob platby", r"payment method", r"payment", r"zpusob uhrady"],
+        r"[:\s]*([A-Za-zÁČĎÉĚÍŇÓŘŠŤÚŮÝŽa-záčďéěíňóřšťúůýž /+\-]+)", 2)
+    banka = _find_label_value(lines,
+        [r"n[aá]zev banky", r"banka", r"bank name"],
+        r"[:\s]*([A-Za-z0-9 .,'\-_/]+)", 2)
+    ucet = _find_label_value(lines,
+        [r"\b(?:č[iy]slo\s*[\w]*\s*ú[čc]tu|cislo uctu|account number|iban)\b"],
+        r"[:\s]*([0-9\- ]{1,20}/[0-9]{3,6}|[A-Z]{2}[0-9A-Z ]{12,34})", 3)
+
     supplier = {"nazev": None, "ico": None, "dic": None, "adresa": None}
 
     result = {
@@ -117,6 +128,9 @@ def extract_fields_heuristic(text: str) -> dict:
         "castka_s_dph": parse_amount(castka_s) if castka_s else None,
         "dodavatel": supplier,
         "mena": cur,
+        "platba_zpusob": platba.strip() if isinstance(platba, str) else platba,
+        "banka_prijemce": banka.strip() if isinstance(banka, str) else banka,
+        "ucet_prijemce": ucet.strip() if isinstance(ucet, str) else ucet,
         "confidence": 0.62
     }
     return result
