@@ -135,6 +135,7 @@ async function extract() {
     valUl.appendChild(li);
   });
   
+  // Explicitně zobrazíme hlášku o úspěšné extrakci
   toast('✅ Extrakce dokončena úspěšně');
 }
 

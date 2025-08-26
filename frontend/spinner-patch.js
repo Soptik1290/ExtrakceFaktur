@@ -26,10 +26,30 @@ function hideLoading() {
     go.addEventListener('click', async (e) => {
       showLoading();
       try { 
+        // Uložíme původní funkci toast
+        const originalToast = window.toast;
+        let extractionSuccessful = false;
+        
+        // Dočasně přepíšeme funkci toast, abychom mohli zachytit úspěšnou extrakci
+        window.toast = function(msg, type) {
+          if (msg === '✅ Extrakce dokončena úspěšně') {
+            extractionSuccessful = true;
+          }
+          // Voláme původní funkci toast
+          originalToast(msg, type);
+        };
+        
+        // Voláme funkci extract
         await (window.extract ? window.extract() : (() => {})()); 
+        
+        // Obnovíme původní funkci toast
+        window.toast = originalToast;
       } catch (error) {
         console.error('Chyba při extrakci:', error);
-        toast('❌ Nastala chyba při zpracování faktury', 'error');
+        // Zobrazíme chybovou hlášku pouze pokud extrakce nebyla úspěšná
+        if (!extractionSuccessful) {
+          toast('❌ Nastala chyba při zpracování faktury', 'error');
+        }
       } finally { 
         hideLoading(); 
       }
@@ -45,10 +65,30 @@ function hideLoading() {
       
       showLoading();
       try { 
+        // Uložíme původní funkci toast
+        const originalToast = window.toast;
+        let exportSuccessful = false;
+        
+        // Dočasně přepíšeme funkci toast, abychom mohli zachytit úspěšný export
+        window.toast = function(msg, type) {
+          if (msg === '💾 Soubor byl stažen') {
+            exportSuccessful = true;
+          }
+          // Voláme původní funkci toast
+          originalToast(msg, type);
+        };
+        
+        // Voláme funkci doExport
         await (window.doExport ? window.doExport() : (() => {})()); 
+        
+        // Obnovíme původní funkci toast
+        window.toast = originalToast;
       } catch (error) {
         console.error('Chyba při exportu:', error);
-        toast('❌ Nastala chyba při exportu dat', 'error');
+        // Zobrazíme chybovou hlášku pouze pokud export nebyl úspěšný
+        if (!exportSuccessful) {
+          toast('❌ Nastala chyba při exportu dat', 'error');
+        }
       } finally { 
         hideLoading(); 
       }
