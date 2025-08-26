@@ -23,3 +23,6 @@ Env:
 OPENAI_API_KEY=   # optional for LLM
 OPENAI_MODEL=gpt-4o-mini
 ```
+
+
+**Czech vendor templates:** ČEZ Prodej, PRE, O2, T‑Mobile, Alza byly přidány do `backend/templates/`.

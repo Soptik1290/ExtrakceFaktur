@@ -1,0 +1,31 @@
+{
+  "name": "ČEZ Prodej, a.s.",
+  "required_keywords": [
+    "ČEZ Prodej",
+    "IČO 27232425"
+  ],
+  "optional_keywords": [
+    "Faktura",
+    "Daňový doklad",
+    "Variabilní symbol",
+    "VS",
+    "DUZP"
+  ],
+  "fields": {
+    "variabilni_symbol": "(?:Variabilní\\s*symbol|VS)[:\\s]+(\\d{6,12})",
+    "datum_vystaveni": "(?:Datum\\s*vystavení|Vystaveno)[:\\s]+([0-9.\\-/ ]{8,})",
+    "datum_splatnosti": "(?:Datum\\s*splatnosti|Splatnost)[:\\s]+([0-9.\\-/ ]{8,})",
+    "duzp": "(?:DUZP|Datum uskutečnění zdanitelného plnění)[:\\s]+([0-9.\\-/ ]{8,})",
+    "castka_bez_dph": "(?:Základ daně|Bez DPH)[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)?",
+    "dph": "DPH[^:]*[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)?",
+    "castka_s_dph": "(?:K úhradě|Celkem k úhradě|Celkem)[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)?",
+    "dodavatel_dic": "(?:DIČ|VAT)[:\\s]+(CZ\\d{8,10})",
+    "dodavatel_adresa": "ČEZ Prodej.*?\\n(.*)"
+  },
+  "supplier_defaults": {
+    "nazev": "ČEZ Prodej, a.s.",
+    "ico": "27232425",
+    "dic": "CZ27232425",
+    "adresa": null
+  }
+}
