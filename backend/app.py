@@ -145,16 +145,3 @@ async def export_file(payload: dict = Body(...)):
 from pathlib import Path as _Path
 _FRONTEND_DIR = str((_Path(__file__).resolve().parents[1] / "frontend").resolve())
 app.mount("/", StaticFiles(directory=_FRONTEND_DIR, html=True), name="frontend")
-
-
-@app.get("/api/templates")
-def list_templates():
-    """Return available JSON templates by filename (without extension)."""
-    import os
-    tpl_dir = os.path.join(os.path.dirname(__file__), "templates")
-    out = []
-    if os.path.isdir(tpl_dir):
-        for fn in sorted(os.listdir(tpl_dir)):
-            if fn.lower().endswith(".json"):
-                out.append(os.path.splitext(fn)[0])
-    return {"templates": out}
