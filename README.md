@@ -26,3 +26,11 @@ OPENAI_MODEL=gpt-4o-mini
 
 
 **Czech vendor templates:** ČEZ Prodej, PRE, O2, T‑Mobile, Alza byly přidány do `backend/templates/`.
+
+
+---
+
+## OCR tips (přesnost)
+- Pro lepší češtinu nainstaluj Tesseract language data `ces` (v Docker image Debian/Ubuntu balíček `tesseract-ocr-ces`).
+- V `ocr.py` je nastaveno `lang="ces+eng"` a `--oem 3 --psm 6`, plus jednoduché předzpracování (grayscale, upscale, threshold).
+- Pokud PDF nemá textovou vrstvu, fallback je OCR každé stránky (rasterizace přes pdfplumber).
