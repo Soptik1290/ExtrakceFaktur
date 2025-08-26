@@ -1,7 +1,10 @@
-/* style.modul.css – visual polish aligned with modulservis.cz (deep blue accent) */
-/* Load this AFTER your existing /style.css */
 
-/* Color tokens */
+/* =============================================================
+   style.modul.css — UI polish aligned with modulservis.cz
+   Load AFTER your existing /style.css
+   ============================================================= */
+
+/* ---- Color tokens ---- */
 :root{
   --ms-bg:        #f7f8fb;
   --ms-text:      #0f172a;
@@ -19,28 +22,17 @@
   --ms-bad:       #dc2626;
 }
 
-/* Base */
+/* ---- Base ---- */
 body{ background:var(--ms-bg); color:var(--ms-text); }
 a{ color:var(--ms-primary-2); }
 a:hover{ color:var(--ms-primary-3); }
 
-/* Header */
-.header{
-  background: linear-gradient(180deg, #ffffff, #f9fbff 50%, #f7f8fb);
-  border-bottom: 1px solid var(--ms-border);
+/* ---- OPTIONAL: hide top nav / breadcrumb completely ---- */
+.navbar, .site-header .nav, .breadcrumb, .header, .site-header {
+  display: none !important;
 }
-.header-content h1{
-  color: var(--ms-primary);
-  letter-spacing: .2px;
-}
-.header-content p{ color: var(--ms-muted); }
 
-/* Breadcrumb */
-.breadcrumb{ color: var(--ms-muted); }
-.breadcrumb a{ color: var(--ms-primary); }
-.breadcrumb a:hover{ color: var(--ms-primary-2); text-decoration: underline; }
-
-/* Cards */
+/* ---- Cards / containers ---- */
 .card{
   background: var(--ms-panel);
   border: 1px solid var(--ms-border);
@@ -48,59 +40,84 @@ a:hover{ color:var(--ms-primary-3); }
   box-shadow: 0 2px 6px rgba(15,23,42,.04);
 }
 .card h2,.card h3{ color: var(--ms-text); }
-.card .note{ color: var(--ms-muted); }
+.card .note,.micro{ color: var(--ms-muted); }
 
-/* Inputs */
-input[type="text"], input[type="search"], input[type="file"], select, .input, .select{
+/* ---- Inputs ---- */
+input[type="text"], input[type="search"], input[type="file"],
+select, .input, .select{
   background:#fff; color:var(--ms-text);
   border:1px solid var(--ms-border);
   border-radius:10px; padding:10px 12px;
+  font: inherit;
 }
 input::placeholder{ color:#9ca3af; }
 
-/* Buttons */
+/* ---- File picker (Vybrat soubor) ---- */
+label.file input{ display:none; }
+label.file span{
+  background: #1e3a8a;       /* deep blue */
+  color: #ffffff;             /* white text */
+  border: 1px solid #1e3a8a;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  display: inline-block;
+  cursor: pointer;
+}
+label.file span:hover,
+label.file span:focus-visible{
+  background: #2644a1;        /* hover */
+  border-color: #2644a1;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+}
+
+/* ---- Buttons ---- */
 .btn{
-  --btn-bg: var(--ms-primary-2);
-  --btn-bg-hover: var(--ms-primary-3);
-  --btn-color: #fff;
-  background: var(--btn-bg);
-  color: var(--btn-color);
-  border: none; border-radius: 10px;
-  padding: 10px 16px; cursor:pointer;
+  background: #2563eb;  /* primary */
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
   transition: background .15s ease, transform .05s ease;
 }
-.btn:hover{ background: var(--btn-bg-hover); }
+.btn:hover{ background: #3b82f6; }
 .btn:active{ transform: translateY(1px); }
 .btn.ghost{
-  --btn-bg:#fff; --btn-color: var(--ms-text);
-  background:#fff; color:var(--btn-color);
-  border:1px solid var(--ms-border);
+  background: #fff;
+  color: #0f172a;
+  border: 1px solid #e6e9ef;
 }
 .btn.ghost:hover{ background:#f8fafc; }
-.btn.secondary{ --btn-bg:var(--ms-primary); --btn-bg-hover:#2644a1; }
 
-/* File picker label */
-label.file span{
-  border:1px dashed var(--ms-border);
-  background:#fff;
+/* ---- Export: název souboru ---- */
+#exportName{
+  min-width: 220px;
+  padding: 10px 12px;
+  border: 1px solid #e6e9ef;
+  border-radius: 10px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
 }
-label.file span:hover{
-  border-color: var(--ms-primary-2);
-  color: var(--ms-primary-2);
+#exportName::placeholder{ color: #9ca3af; }
+#exportName:focus{
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+  outline: none;
 }
 
-/* Two-column layout spacing (if you have .container/.main in your CSS keep it) */
-.container, .wrap{ max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+/* ---- Table with extracted data ---- */
+#tbl.kv{ width:100%; border-collapse: collapse; }
+#tbl.kv td{ padding: 10px 8px; border-bottom: 1px solid var(--ms-border); vertical-align: middle; }
+#tbl.kv tr:nth-child(odd){ background: #fbfcff; }
+#tbl.kv tr:hover{ background:#f6f9ff; }
+#tbl.kv td:first-child{ color:#475569; width: 38%; }
+#tbl.kv td .val{ font-weight: 600; }
 
-/* Tables */
-table{ width: 100%; border-collapse: collapse; }
-.kv td{ padding: 10px 8px; border-bottom: 1px solid var(--ms-border); vertical-align: middle; }
-.kv tr:nth-child(odd){ background: #fbfcff; }
-.kv tr:hover{ background:#f6f9ff; }
-.kv td:first-child{ color: var(--ms-muted); width: 38%; }
-.kv td .val{ font-weight: 600; }
-
-/* Copy buttons + toast align to light theme */
+/* Copy buttons + toast (light theme) */
 .copybtn{
   margin-left:10px; padding:6px 8px;
   border-radius:8px; border:1px solid var(--ms-border);
@@ -109,38 +126,50 @@ table{ width: 100%; border-collapse: collapse; }
 .copybtn:hover{ background:#f1f5f9; }
 
 #toast{
+  position:fixed; bottom:18px; right:18px; z-index:9999;
   background:#111827; color:#e5e7eb;
-  border-color:#1f2937; border-radius:8px;
+  border:1px solid #1f2937; border-radius:8px;
+  opacity:0; transform:translateY(8px); transition:all .2s ease;
 }
+#toast.show{ opacity:1; transform:translateY(0); }
 
-/* Validations */
-.checks li{ border-bottom:1px solid var(--ms-border); }
-.ok{ color: var(--ms-ok); } .bad{ color: var(--ms-bad); }
+/* ---- Validations list ---- */
+#valid {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+}
+#valid li{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e6e9ef;
+  border-radius: 10px;
+  background: #ffffff;
+  margin-bottom: 8px;
+}
+#valid li .ok{ color: var(--ms-ok); font-weight: 600; }
+#valid li .bad{ color: var(--ms-bad); font-weight: 600; }
+/* optional emoji alignment */
+#valid li::marker { content: ""; }
+#valid li span.ok::before { content: "✅ "; }
+#valid li span.bad::before { content: "⚠️ "; }
 
-/* Code block */
+/* ---- Code block ---- */
 .codeblock{
   background:#0b1220; color:#e2e8f0; border-radius:12px;
-  border: 1px solid #111827;
+  border: 1px solid #111827; min-height: 160px; overflow:auto;
 }
 
-/* Export row */
+/* ---- Export row ---- */
 .export-row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .export-row label{ color: var(--ms-muted); }
 
-/* Footer */
-.footer{
-  border-top:1px solid var(--ms-border);
-  color: var(--ms-muted);
-}
-.footer a{ color: var(--ms-muted); }
-.footer a:hover{ color: var(--ms-primary); }
-
-/* Spinner overlay (light tone) */
-.loading{ background: rgba(30,58,138, .08); }
-.spinner{ border:6px solid rgba(30,58,138,.2); border-top-color: var(--ms-primary-2); }
-.loading-text{ color: var(--ms-primary); }
-
-/* Small helpers */
-.tag{ background: var(--ms-ghost); color: var(--ms-primary); padding:.2rem .5rem; border-radius: 999px; border:1px solid #e0e7ff; font-size: 12px; }
-.micro{ font-size: 13px; color: var(--ms-muted); }
-hr{ border:0; border-top:1px solid var(--ms-border); }
+/* ---- Spinner overlay ---- */
+.loading{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+  background: rgba(30,58,138, .08); z-index:9998; }
+.loading.hidden{ display:none; }
+.spinner{ width:48px; height:48px; border:6px solid rgba(30,58,138,.2); border-top-color: var(--ms-primary-2); border-radius:50%; animation:spin .8s linear infinite; }
+.loading-text{ margin-top:12px; color: var(--ms-primary); font-weight:600; text-align:center; }
+@keyframes spin{ to{ transform: rotate(360deg); } }
