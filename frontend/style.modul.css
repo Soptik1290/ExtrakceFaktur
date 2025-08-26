@@ -144,3 +144,9 @@ table{ width: 100%; border-collapse: collapse; }
 .tag{ background: var(--ms-ghost); color: var(--ms-primary); padding:.2rem .5rem; border-radius: 999px; border:1px solid #e0e7ff; font-size: 12px; }
 .micro{ font-size: 13px; color: var(--ms-muted); }
 hr{ border:0; border-top:1px solid var(--ms-border); }
+
+label.file span,
+input[type="file"]::file-selector-button,
+input[type="file"]::-webkit-file-upload-button {
+  color: #ffffff !important; /* bílý text */
+}
