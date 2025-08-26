@@ -57,6 +57,9 @@ async function extract() {
     toast('⚠️ Nejdříve vyberte soubor s fakturou');
     return; 
   }
+  
+  // Zobrazení informací o souboru (pro případ, že by uživatel kliknul na tlačítko bez předchozího výběru souboru)
+  displayFileInfo(file);
 
   const fd = new FormData();
   fd.append('file', file);
@@ -162,10 +165,42 @@ async function doExport() {
 window.extract = extract;
 window.doExport = doExport;
 
+// Funkce pro zobrazení informací o souboru
+function displayFileInfo(file) {
+  if (!file) return;
+  
+  const fileInfoEl = document.getElementById('file-info');
+  const fileNameEl = document.getElementById('file-name');
+  const fileSizeEl = document.getElementById('file-size');
+  
+  // Zobrazení názvu souboru
+  fileNameEl.textContent = `Název: ${file.name}`;
+  
+  // Zobrazení velikosti souboru v KB nebo MB
+  const sizeInKB = file.size / 1024;
+  let sizeText = '';
+  
+  if (sizeInKB < 1024) {
+    sizeText = `Velikost: ${sizeInKB.toFixed(2)} KB`;
+  } else {
+    const sizeInMB = sizeInKB / 1024;
+    sizeText = `Velikost: ${sizeInMB.toFixed(2)} MB`;
+  }
+  
+  fileSizeEl.textContent = sizeText;
+  fileInfoEl.classList.remove('hidden');
+}
+
 // Hook buttons
 document.getElementById('go')?.addEventListener('click', extract);
 document.getElementById('doExport')?.addEventListener('click', doExport);
 document.getElementById('copyJson')?.addEventListener('click', () => {
   const pretty = document.getElementById('jsonOut').textContent || '';
   copyText(pretty);
+});
+
+// Přidání event listeneru pro změnu souboru
+document.getElementById('file')?.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  displayFileInfo(file);
 });

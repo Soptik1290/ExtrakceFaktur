@@ -79,6 +79,30 @@ body {
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
+/* Informace o souboru */
+.file-info {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #495057;
+  background: #f8f9fa;
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+}
+
+.file-info span {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.file-info #file-name {
+  font-weight: 600;
+}
+
+.hidden {
+  display: none;
+}
+
 .card h2 {
   color: #1e3a8a;
   font-size: 1.4rem;
