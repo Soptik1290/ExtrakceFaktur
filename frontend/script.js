@@ -3,7 +3,7 @@
 let lastData = null;
 
 // Toast helper
-function toast(msg) {
+function toast(msg, type = 'success') {
   let el = document.getElementById('toast');
   if (!el) {
     el = document.createElement('div');
@@ -11,7 +11,9 @@ function toast(msg) {
     document.body.appendChild(el);
   }
   el.textContent = msg;
-  el.className = 'toast show';
+  el.className = `toast show ${type}`;
+  
+  // Automaticky skrýt po 3 sekundách
   setTimeout(() => { el.classList.remove('show'); }, 1300);
 }
 

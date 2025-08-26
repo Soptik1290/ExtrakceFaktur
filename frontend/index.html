@@ -7,68 +7,104 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>Invoice Extractor</h1>
-      <p>Inteligentní extrakce dat z faktur pomocí AI, šablon a heuristik</p>
+  <!-- Header s firemním stylem -->
+  <div class="header">
+    <div class="header-content">
+      <h1>📄 Invoice Extractor</h1>
+      <p>Interní nástroj pro automatickou extrakci dat z faktur</p>
     </div>
+  </div>
 
-    <div class="card upload-card">
-      <div class="form-row">
-        <label for="file" class="file-upload-label">
-          📄 Vybrat fakturu
-          <input type="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff" />
-        </label>
-        <select id="method" class="btn-secondary">
-          <option value="auto" selected>Auto</option>
-          <option value="template">Šablona</option>
-          <option value="llm">LLM (AI)</option>
-          <option value="heuristic">Pouze heuristiky</option>
-        </select>
-        <button id="go" class="btn-primary">🚀 Extrahovat data</button>
+  <!-- Breadcrumb navigace -->
+  <div class="breadcrumb">
+    <a href="/">Domů</a> / <span>Invoice Extractor</span>
+  </div>
+
+  <div class="container">
+    <!-- Upload sekce -->
+    <div class="card section-spacing">
+      <h2>📤 Nahrání faktury</h2>
+      <div class="form-section">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="file">Soubor faktury</label>
+            <label for="file" class="file-upload-label">
+              📄 Vybrat soubor
+              <input type="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff" />
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="method">Metoda extrakce</label>
+            <select id="method">
+              <option value="auto" selected>Automatická detekce</option>
+              <option value="template">Šablona</option>
+              <option value="llm">AI (LLM)</option>
+              <option value="heuristic">Heuristiky</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>&nbsp;</label>
+            <button id="go" class="btn-primary">🚀 Zpracovat fakturu</button>
+          </div>
+        </div>
       </div>
     </div>
 
     <div id="result" class="hidden">
-      <h2 style="text-align: center; color: white; margin-bottom: 2rem; font-size: 2rem;">Výsledky extrakce</h2>
-      <div class="grid">
+      <div class="results-grid">
         <div>
-          <div class="card json-section">
-            <h3>📋 JSON výstup</h3>
+          <!-- JSON výstup -->
+          <div class="card json-section section-spacing">
+            <h3>📋 Strukturovaná data (JSON)</h3>
             <pre id="jsonOut"></pre>
-            <button id="copyJson" class="btn-secondary" style="margin-top: 1rem;">📋 Kopírovat JSON</button>
+            <div style="margin-top: 1rem;">
+              <button id="copyJson" class="btn-outline">📋 Kopírovat JSON</button>
+            </div>
           </div>
           
+          <!-- Export sekce -->
           <div class="card export-section">
             <h3>💾 Export dat</h3>
-            <div class="export-row">
-              <label for="exportFmt">Formát:</label>
-              <select id="exportFmt">
-                <option value="json">JSON</option>
-                <option value="txt">TXT</option>
-                <option value="csv">CSV</option>
-                <option value="xlsx">Excel (XLSX)</option>
-              </select>
-              <input id="exportName" placeholder="Název souboru (volitelné)" />
-              <button id="doExport" class="btn-primary">⬇️ Stáhnout</button>
+            <div class="export-controls">
+              <div class="form-group">
+                <label for="exportFmt">Formát</label>
+                <select id="exportFmt">
+                  <option value="json">JSON</option>
+                  <option value="txt">TXT</option>
+                  <option value="csv">CSV</option>
+                  <option value="xlsx">Excel (XLSX)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="exportName">Název souboru</label>
+                <input id="exportName" placeholder="invoice_export" />
+              </div>
+              <div class="form-group">
+                <label>&nbsp;</label>
+                <button id="doExport" class="btn-primary">⬇️ Stáhnout</button>
+              </div>
             </div>
           </div>
         </div>
         
         <div>
-          <div class="card table-section">
+          <!-- Tabulka dat -->
+          <div class="card table-section section-spacing">
             <h3>📊 Extrahovaná data</h3>
-            <table id="tbl">
-              <thead>
-                <tr>
-                  <th>Pole</th>
-                  <th>Hodnota</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
+            <div class="table-container">
+              <table id="tbl">
+                <thead>
+                  <tr>
+                    <th>Pole</th>
+                    <th>Hodnota</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
           </div>
           
+          <!-- Validace -->
           <div class="card validation-section">
             <h3>✅ Validace dat</h3>
             <ul id="valid" class="validation-list"></ul>
@@ -76,6 +112,11 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>&copy; 2025 ModulServis - Interní nástroj pro zpracování faktur</p>
   </div>
   
   <!-- Loading overlay -->
