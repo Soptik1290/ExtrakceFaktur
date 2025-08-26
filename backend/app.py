@@ -1,8 +1,9 @@
-import io
-import os
+
+import io, os, csv, json
 from typing import Optional
-from fastapi import FastAPI, UploadFile, File, Query
+from fastapi import FastAPI, UploadFile, File, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse, JSONResponse
 from starlette.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -15,9 +16,8 @@ from .extractors.templates import extract_fields_template
 
 load_dotenv()
 
-app = FastAPI(title="Invoice Extractor", version="0.2.0")
+app = FastAPI(title="Invoice Extractor", version="0.3.0")
 
-# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -65,6 +65,81 @@ async def extract(file: UploadFile = File(...), method: Optional[str] = Query("a
 
     validations = validate_extraction(result)
     return ExtractResponse(data=result, method=used_method, validations=validations)
+
+# -------- Export endpoint --------
+def _flatten_dict(d, prefix=""):
+    rows = []
+    for k, v in d.items():
+        key = f"{prefix}{k}" if not prefix else f"{prefix}.{k}"
+        if isinstance(v, dict):
+            rows.extend(_flatten_dict(v, key))
+        else:
+            rows.append((key, "" if v is None else v))
+    return rows
+
+def _to_txt(d: dict) -> bytes:
+    rows = _flatten_dict(d)
+    buf = io.StringIO()
+    for k, v in rows:
+        buf.write(f"{k}: {v}\n")
+    return buf.getvalue().encode("utf-8")
+
+def _to_csv(d: dict) -> bytes:
+    rows = _flatten_dict(d)
+    out = io.StringIO()
+    w = csv.writer(out)
+    w.writerow(["Key", "Value"])
+    for k, v in rows:
+        w.writerow([k, v])
+    return out.getvalue().encode("utf-8")
+
+def _to_xlsx(d: dict) -> bytes:
+    from openpyxl import Workbook
+    from openpyxl.utils import get_column_letter
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Invoice"
+    ws.append(["Key", "Value"])
+    for k, v in _flatten_dict(d):
+        ws.append([k, v])
+    # autosize
+    for col in [1, 2]:
+        max_len = 0
+        for cell in ws[get_column_letter(col)]:
+            val = str(cell.value) if cell.value is not None else ""
+            max_len = max(max_len, len(val))
+        ws.column_dimensions[get_column_letter(col)].width = min(max_len + 2, 80)
+    bio = io.BytesIO()
+    wb.save(bio)
+    bio.seek(0)
+    return bio.read()
+
+@app.post("/api/export")
+async def export_file(payload: dict = Body(...)):
+    fmt = (payload.get("format") or "json").lower()
+    data = payload.get("data") or {}
+    filename = payload.get("filename") or "invoice_export"
+    if fmt == "json":
+        content = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
+        media = "application/json"
+        ext = "json"
+    elif fmt == "txt":
+        content = _to_txt(data)
+        media = "text/plain"
+        ext = "txt"
+    elif fmt == "csv":
+        content = _to_csv(data)
+        media = "text/csv"
+        ext = "csv"
+    elif fmt == "xlsx":
+        content = _to_xlsx(data)
+        media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ext = "xlsx"
+    else:
+        return JSONResponse({"error": "Unsupported format"}, status_code=400)
+
+    headers = {"Content-Disposition": f'attachment; filename="{filename}.{ext}"'}
+    return StreamingResponse(io.BytesIO(content), media_type=media, headers=headers)
 
 # --- Serve frontend last ---
 from pathlib import Path as _Path

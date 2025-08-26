@@ -11,3 +11,4 @@ python-dateutil
 regex
 starlette
 reportlab
+openpyxl

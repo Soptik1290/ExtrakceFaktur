@@ -1,3 +1,4 @@
+
 import os, json, re
 from .utils import normalize_date, parse_amount
 try:
@@ -10,9 +11,7 @@ def llm_available() -> bool:
 
 def _prompt(text: str) -> str:
     return f"""
-Jsi extrakční AI pro faktury (CZ/EN). Z textu faktury vytěž pole dle JSON schématu níže.
-Vrať pouze platný JSON bez vysvětlení.
-
+Jsi extrakční AI pro faktury (CZ/EN). Vrať POUZE JSON dle schématu:
 {{
   "variabilni_symbol": "string|null",
   "datum_vystaveni": "YYYY-MM-DD|null",
@@ -22,21 +21,11 @@ Vrať pouze platný JSON bez vysvětlení.
   "dph": "number|string|null",
   "castka_s_dph": "number|string|null",
   "dodavatel": {{
-    "nazev": "string|null",
-    "ico": "string|null",
-    "dic": "string|null",
-    "adresa": "string|null"
+    "nazev": "string|null", "ico": "string|null", "dic": "string|null", "adresa": "string|null"
   }},
   "mena": "string|null",
   "confidence": 0.0
 }}
-
-Pravidla:
-- Datumy normalizuj na YYYY-MM-DD, jinak null.
-- Částky dej jako čísla s tečkou, pokud lze; jinak string.
-- DIČ může být CZ nebo jiné EU.
-- Pokud si nejsi jistý, nastav null a sniž confidence.
-
 TEXT:
 -----
 {text}
@@ -56,21 +45,16 @@ def extract_fields_llm(text: str) -> dict:
     )
     raw = resp.choices[0].message.content.strip()
     m = re.search(r"\{.*\}", raw, re.S)
-    if m:
-        raw = m.group(0)
+    if m: raw = m.group(0)
     data = json.loads(raw)
-
     for k in ["datum_vystaveni","datum_splatnosti","duzp"]:
         data[k] = normalize_date(data.get(k))
-
     def _num(v):
         if v is None: return None
         if isinstance(v, (int,float)): return float(v)
         return parse_amount(str(v))
-
     for k in ["castka_bez_dph","dph","castka_s_dph"]:
         data[k] = _num(data.get(k))
-
     data.setdefault("dodavatel", {"nazev": None, "ico": None, "dic": None, "adresa": None})
     data.setdefault("mena", None)
     data.setdefault("confidence", 0.75)

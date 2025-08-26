@@ -29,7 +29,17 @@
         <div>
           <h3>JSON</h3>
           <pre id="jsonOut"></pre>
-          <button id="downloadJson">Download JSON</button>
+          <div class="row">
+            <label for="exportFmt">Export as:</label>
+            <select id="exportFmt">
+              <option value="json">JSON</option>
+              <option value="txt">TXT</option>
+              <option value="csv">CSV</option>
+              <option value="xlsx">Excel (XLSX)</option>
+            </select>
+            <input id="exportName" placeholder="filename (optional)" />
+            <button id="doExport">Download</button>
+          </div>
         </div>
         <div>
           <h3>Parsed Table</h3>
@@ -39,7 +49,6 @@
         </div>
       </div>
     </div>
-
   </div>
   <script src="/script.js"></script>
 </body>

@@ -1,3 +1,4 @@
+
 import re, os, json, glob
 from dataclasses import dataclass
 from typing import Dict, List, Optional
@@ -28,22 +29,19 @@ def _load_templates(dirpath: str):
 _TEMPLATES = None
 
 def _ensure_loaded():
+    import os
     global _TEMPLATES
-    if _TEMPLATES is not None:
-        return
+    if _TEMPLATES is not None: return
     dirpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "templates"))
     _TEMPLATES = _load_templates(dirpath)
 
 def _score(tpl: Template, text: str) -> int:
     score = 0
     for kw in tpl.required_keywords:
-        if re.search(re.escape(kw), text, re.I):
-            score += 3
-        else:
-            return -999
+        if re.search(re.escape(kw), text, re.I): score += 3
+        else: return -999
     for kw in tpl.optional_keywords:
-        if re.search(re.escape(kw), text, re.I):
-            score += 1
+        if re.search(re.escape(kw), text, re.I): score += 1
     return score
 
 def _cap(pattern: str, text: str):
@@ -57,16 +55,12 @@ def extract_fields_template(text: str) -> Optional[dict]:
     best, best_sc = None, -1000
     for t in _TEMPLATES:
         sc = _score(t, text)
-        if sc > best_sc:
-            best, best_sc = t, sc
-    if not best or best_sc < 0:
-        return None
+        if sc > best_sc: best, best_sc = t, sc
+    if not best or best_sc < 0: return None
 
     vals = {k: _cap(rx, text) for k, rx in best.fields.items()}
-
     for k in ["datum_vystaveni","datum_splatnosti","duzp"]:
         vals[k] = normalize_date(vals.get(k))
-
     for k in ["castka_bez_dph","dph","castka_s_dph"]:
         v = vals.get(k); vals[k] = parse_amount(v) if v is not None else None
 
