@@ -17,6 +17,32 @@ function toast(msg, type = 'success') {
   setTimeout(() => { el.classList.remove('show'); }, 1300);
 }
 
+// Success overlay helper
+function showSuccessOverlay() {
+  // Vytvoříme success overlay
+  let successOverlay = document.getElementById('successOverlay');
+  if (!successOverlay) {
+    successOverlay = document.createElement('div');
+    successOverlay.id = 'successOverlay';
+    successOverlay.className = 'success-overlay';
+    successOverlay.innerHTML = `
+      <div class="success-content">
+        <div class="success-icon">✅</div>
+        <div class="success-text">Zpracování dokončeno!</div>
+      </div>
+    `;
+    document.body.appendChild(successOverlay);
+  }
+  
+  // Zobrazíme overlay
+  successOverlay.classList.add('show');
+  
+  // Automaticky skryjeme po 2 sekundách s fade-out efektem
+  setTimeout(() => {
+    successOverlay.classList.remove('show');
+  }, 2000);
+}
+
 // Copy helper
 async function copyText(text) {
   try {
@@ -64,87 +90,102 @@ async function extract() {
   // Zobrazení informací o souboru (pro případ, že by uživatel kliknul na tlačítko bez předchozího výběru souboru)
   displayFileInfo(file);
 
+  // Zobrazíme loading overlay
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  if (loadingOverlay) {
+    loadingOverlay.classList.remove('hidden');
+  }
+
   const fd = new FormData();
   fd.append('file', file);
 
-  const res = await fetch(`/api/extract?method=${encodeURIComponent(method)}`, {
-    method: 'POST',
-    body: fd
-  });
-  if (!res.ok) { 
-    toast('❌ Extrakce se nezdařila');
-    return; 
-  }
-  const data = await res.json();
-  lastData = data;
-  document.getElementById('result').classList.remove('hidden');
-
-  // JSON out + Copy JSON
-  const pretty = JSON.stringify(data, null, 2);
-  document.getElementById('jsonOut').textContent = pretty;
-  const copyJsonBtn = document.getElementById('copyJson');
-  if (copyJsonBtn) copyJsonBtn.onclick = () => copyText(pretty);
-
-  // Table
-  const tbody = document.querySelector('#tbl tbody'); tbody.innerHTML = '';
-  const d = data.data || {}; const sup = d.dodavatel || {};
-  const computed = d._computed || {};
-  const rows = [
-    ['Variabilní symbol', d.variabilni_symbol, null],
-    ['Datum vystavení', d.datum_vystaveni, null],
-    ['Splatnost', d.datum_splatnosti, null],
-    ['DUZP', d.duzp, null],
-    ['Částka bez DPH', d.castka_bez_dph, 'castka_bez_dph'],
-    ['DPH', d.dph, 'dph'],
-    ['Částka s DPH', d.castka_s_dph, 'castka_s_dph'],
-    ['Měna', d.mena, null],
-    ['Dodavatel – název', sup.nazev, null],
-    ['Dodavatel – IČO', sup.ico, null],
-    ['Dodavatel – DIČ', sup.dic, null],
-    ['Dodavatel – adresa', sup.adresa, null],
-    ['Způsob úhrady', d.platba_zpusob, null],
-    ['Banka příjemce', d.banka_prijemce, null],
-    ['Číslo účtu příjemce', d.ucet_prijemce, null],
-    ['Důvěryhodnost', d.confidence != null ? Math.round(d.confidence * 100) + ' %' : null, null],
-    // Template only if non-empty
-    d._template ? ['Použitá šablona', d._template, null] : null,
-  ];
-  rows.forEach(([k,v,key]) => {
-    const row = rowWithCopy(k,v, computed[key]);
-    if (row) tbody.appendChild(row);
-  });
-
-  // Validations
-  const valUl = document.getElementById('valid'); valUl.innerHTML = '';
-  const v = data.validations || {};
-  const items = [
-    ['Variabilní symbol', v.variabilni_symbol, 'Kontrola formátu variabilního symbolu'],
-    ['IČO checksum', v.ico, 'Ověření kontrolního součtu IČO'],
-    ['DIČ pattern', v.dic, 'Kontrola formátu DIČ'],
-    ['Součet (bezDPH + DPH = s DPH)', v.sum_check, 'Ověření matematické správnosti částek']
-  ];
-  items.forEach(([label, ok, description]) => {
-    const li = document.createElement('li');
-    if (ok === true) {
-      li.className = 'ok';
-      li.innerHTML = `<div class="validation-item"><div class="validation-header">✅ ${label}</div><div class="validation-description">${description}</div></div>`;
-    } else if (ok === false) {
-      li.className = 'bad';
-      li.innerHTML = `<div class="validation-item"><div class="validation-header">❌ ${label}</div><div class="validation-description">${description}</div></div>`;
-    } else {
-      li.className = 'info';
-      li.innerHTML = `<div class="validation-item"><div class="validation-header">ℹ️ ${label}</div><div class="validation-description">${description} (nelze ověřit)</div></div>`;
+  try {
+    const res = await fetch(`/api/extract?method=${encodeURIComponent(method)}`, {
+      method: 'POST',
+      body: fd
+    });
+    if (!res.ok) { 
+      toast('❌ Extrakce se nezdařila');
+      return; 
     }
-    valUl.appendChild(li);
-  });
-  
-  // Explicitně zobrazíme hlášku o úspěšné extrakci a skryjeme animaci
-  toast('✅ Extrakce dokončena úspěšně');
-  
-  // Skryjeme načítací overlay
-  setTimeout(() => {
-    document.getElementById('loadingOverlay').style.display = 'none';
-  }, 500);
+    const data = await res.json();
+    lastData = data;
+    document.getElementById('result').classList.remove('hidden');
+
+    // JSON out + Copy JSON
+    const pretty = JSON.stringify(data, null, 2);
+    document.getElementById('jsonOut').textContent = pretty;
+    const copyJsonBtn = document.getElementById('copyJson');
+    if (copyJsonBtn) copyJsonBtn.onclick = () => copyText(pretty);
+
+    // Table
+    const tbody = document.querySelector('#tbl tbody'); tbody.innerHTML = '';
+    const d = data.data || {}; const sup = d.dodavatel || {};
+    const computed = d._computed || {};
+    const rows = [
+      ['Variabilní symbol', d.variabilni_symbol, null],
+      ['Datum vystavení', d.datum_vystaveni, null],
+      ['Splatnost', d.datum_splatnosti, null],
+      ['DUZP', d.duzp, null],
+      ['Částka bez DPH', d.castka_bez_dph, 'castka_bez_dph'],
+      ['DPH', d.dph, 'dph'],
+      ['Částka s DPH', d.castka_s_dph, 'castka_s_dph'],
+      ['Měna', d.mena, null],
+      ['Dodavatel – název', sup.nazev, null],
+      ['Dodavatel – IČO', sup.ico, null],
+      ['Dodavatel – DIČ', sup.dic, null],
+      ['Dodavatel – adresa', sup.adresa, null],
+      ['Způsob úhrady', d.platba_zpusob, null],
+      ['Banka příjemce', d.banka_prijemce, null],
+      ['Číslo účtu příjemce', d.ucet_prijemce, null],
+      ['Důvěryhodnost', d.confidence != null ? Math.round(d.confidence * 100) + ' %' : null, null],
+      // Template only if non-empty
+      d._template ? ['Použitá šablona', d._template, null] : null,
+    ];
+    rows.forEach(([k,v,key]) => {
+      const row = rowWithCopy(k,v, computed[key]);
+      if (row) tbody.appendChild(row);
+    });
+
+    // Validations
+    const valUl = document.getElementById('valid'); valUl.innerHTML = '';
+    const v = data.validations || {};
+    const items = [
+      ['Variabilní symbol', v.variabilni_symbol, 'Kontrola formátu variabilního symbolu'],
+      ['IČO checksum', v.ico, 'Ověření kontrolního součtu IČO'],
+      ['DIČ pattern', v.dic, 'Kontrola formátu DIČ'],
+      ['Součet (bezDPH + DPH = s DPH)', v.sum_check, 'Ověření matematické správnosti částek']
+    ];
+    items.forEach(([label, ok, description]) => {
+      const li = document.createElement('li');
+      if (ok === true) {
+        li.className = 'ok';
+        li.innerHTML = `<div class="validation-item"><div class="validation-header">✅ ${label}</div><div class="validation-description">${description}</div></div>`;
+      } else if (ok === false) {
+        li.className = 'bad';
+        li.innerHTML = `<div class="validation-item"><div class="validation-header">❌ ${label}</div><div class="validation-description">${description}</div></div>`;
+      } else {
+        li.className = 'info';
+        li.innerHTML = `<div class="validation-item"><div class="validation-header">ℹ️ ${label}</div><div class="validation-description">${description} (nelze ověřit)</div></div>`;
+      }
+      valUl.appendChild(li);
+    });
+    
+    // Explicitně zobrazíme hlášku o úspěšné extrakci
+    toast('✅ Extrakce dokončena úspěšně');
+    
+    // Zobrazíme success overlay s fade-out efektem
+    showSuccessOverlay();
+    
+  } catch (error) {
+    console.error('Chyba při extrakci:', error);
+    toast('❌ Nastala chyba při zpracování faktury', 'error');
+  } finally {
+    // Skryjeme loading overlay
+    if (loadingOverlay) {
+      loadingOverlay.classList.add('hidden');
+    }
+  }
 }
 
 async function doExport() {
@@ -152,23 +193,54 @@ async function doExport() {
     toast('⚠️ Nejdříve proveďte extrakci dat');
     return; 
   }
-  const fmt = document.getElementById('exportFmt').value;
-  const name = document.getElementById('exportName').value || 'invoice_export';
-  const payload = { format: fmt, data: (lastData.data || {}), filename: name };
-  const res = await fetch('/api/export', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) { 
-    toast('❌ Export se nezdařil');
-    return; 
+  
+  // Zobrazíme loading overlay
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  if (loadingOverlay) {
+    loadingOverlay.classList.remove('hidden');
+    // Změníme text pro export
+    const loadingText = loadingOverlay.querySelector('.loading-text');
+    if (loadingText) {
+      loadingText.textContent = 'Připravuji export...';
+    }
   }
-  const blob = await res.blob();
-  const ext = fmt === 'xlsx' ? 'xlsx' : (fmt === 'csv' ? 'csv' : (fmt === 'txt' ? 'txt' : 'json'));
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = `${name}.${ext}`; a.click();
-  toast('💾 Soubor byl stažen');
+  
+  try {
+    const fmt = document.getElementById('exportFmt').value;
+    const name = document.getElementById('exportName').value || 'invoice_export';
+    const payload = { format: fmt, data: (lastData.data || {}), filename: name };
+    const res = await fetch('/api/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) { 
+      toast('❌ Export se nezdařil');
+      return; 
+    }
+    const blob = await res.blob();
+    const ext = fmt === 'xlsx' ? 'xlsx' : (fmt === 'csv' ? 'csv' : (fmt === 'txt' ? 'txt' : 'json'));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = `${name}.${ext}`; a.click();
+    toast('💾 Soubor byl stažen');
+    
+    // Zobrazíme success overlay
+    showSuccessOverlay();
+    
+  } catch (error) {
+    console.error('Chyba při exportu:', error);
+    toast('❌ Nastala chyba při exportu dat', 'error');
+  } finally {
+    // Skryjeme loading overlay
+    if (loadingOverlay) {
+      loadingOverlay.classList.add('hidden');
+      // Vrátíme původní text
+      const loadingText = loadingOverlay.querySelector('.loading-text');
+      if (loadingText) {
+        loadingText.textContent = 'Probíhá zpracování dokumentu...';
+      }
+    }
+  }
 }
 
 window.extract = extract;
