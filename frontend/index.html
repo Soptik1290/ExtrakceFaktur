@@ -1,127 +1,113 @@
 <!doctype html>
-<html lang="en">
+<html lang="cs">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Invoice Extractor</title>
+  <title>Extrakce faktur – AI</title>
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/style.modul.css">
 </head>
 <body>
-  <!-- Header s firemním stylem -->
-  <div class="header">
-    <div class="header-content">
-      <h1>📄 Invoice Extractor</h1>
-      <p>Interní nástroj pro automatickou extrakci dat z faktur</p>
-    </div>
-  </div>
-
-  <div class="container">
-    <!-- Upload sekce -->
-    <div class="card section-spacing">
-      <h2>📤 Nahrání faktury</h2>
-      <div class="form-section">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="file">Soubor faktury</label>
-            <label for="file" class="file-upload-label">
-              📄 Vybrat soubor
-              <input type="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff" />
-            </label>
-          </div>
-          <div class="form-group">
-            <label for="method">Metoda extrakce</label>
-            <select id="method">
-              <option value="auto" selected>Automatická detekce</option>
-              <option value="template">Šablona</option>
-              <option value="llm">AI (LLM)</option>
-              <option value="heuristic">Heuristiky</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>&nbsp;</label>
-            <button id="go" class="btn-primary">🚀 Zpracovat fakturu</button>
-          </div>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">
+        <div class="logo">🧾</div>
+        <div class="brand-text">
+          <strong>Extrakce faktur</strong>
+          <span>AI šablony • LLM • Heuristiky</span>
         </div>
       </div>
     </div>
+  </header>
 
-    <div id="result" class="hidden">
-      <div class="results-grid">
-        <div>
-          <!-- JSON výstup -->
-          <div class="card json-section section-spacing">
-            <h3>📋 Strukturovaná data (JSON)</h3>
-            <pre id="jsonOut"></pre>
-            <div style="margin-top: 1rem;">
-              <button id="copyJson" class="btn-outline">📋 Kopírovat JSON</button>
-            </div>
-          </div>
-          
-          <!-- Export sekce -->
-          <div class="card export-section">
-            <h3>💾 Export dat</h3>
-            <div class="export-controls">
-              <div class="form-group">
-                <label for="exportFmt">Formát</label>
-                <select id="exportFmt">
-                  <option value="json">JSON</option>
-                  <option value="txt">TXT</option>
-                  <option value="csv">CSV</option>
-                  <option value="xlsx">Excel (XLSX)</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="exportName">Název souboru</label>
-                <input id="exportName" placeholder="invoice_export" />
-              </div>
-              <div class="form-group">
-                <label>&nbsp;</label>
-                <button id="doExport" class="btn-primary">⬇️ Stáhnout</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div>
-          <!-- Tabulka dat -->
-          <div class="card table-section section-spacing">
-            <h3>📊 Extrahovaná data</h3>
-            <div class="table-container">
-              <table id="tbl">
-                <thead>
-                  <tr>
-                    <th>Pole</th>
-                    <th>Hodnota</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
-          
-          <!-- Validace -->
-          <div class="card validation-section">
-            <h3>✅ Validace dat</h3>
-            <ul id="valid" class="validation-list"></ul>
-          </div>
-        </div>
+  <section class="hero">
+    <div class="wrap">
+      <h1>Vytěžujte faktury <span class="accent">rychle a přesně</span></h1>
+      <p class="lead">Nahrajte PDF/JPG a my z nich vytáhneme VS, datumy, částky, dodavatele, měnu, způsob úhrady, banku a číslo účtu.</p>
+      <div class="hero-cta">
+        <label class="file">
+          <input type="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff">
+          <span>Vybrat soubor</span>
+        </label>
+        <select id="method" class="select">
+          <option value="auto" selected>Auto</option>
+          <option value="template">Šablony</option>
+          <option value="llm">LLM (AI)</option>
+          <option value="heuristic">Heuristiky</option>
+        </select>
+        <button id="go" class="btn primary">Vytěžit</button>
       </div>
+      <p class="micro" id="how">Preferované pořadí (Auto): <strong>Šablony → LLM → Heuristiky</strong></p>
     </div>
-  </div>
+  </section>
 
-  <!-- Footer -->
-  <div class="footer">
-    <p>&copy; 2025 ModulServis - Interní nástroj pro zpracování faktur</p>
-  </div>
-  
+  <main class="wrap">
+    <div class="grid">
+      <section class="card" id="panel-json">
+        <div class="card-head">
+          <h2>JSON výstup</h2>
+          <div class="actions">
+            <button id="copyJson" class="btn ghost">Zkopírovat JSON</button>
+          </div>
+        </div>
+        <pre id="jsonOut" class="codeblock">// Zde se objeví JSON po zpracování…</pre>
+
+        <div class="divider" id="export"></div>
+
+        <div class="export-row">
+          <label>Název souboru</label>
+          <input id="exportName" class="input small" placeholder="název souboru (volitelné)">
+          <label>Exportovat jako</label>
+          <select id="exportFmt" class="select small">
+            <option value="json">JSON</option>
+            <option value="txt">TXT</option>
+            <option value="csv">CSV</option>
+            <option value="xlsx">Excel (XLSX)</option>
+          </select>
+          <button id="doExport" class="btn">Stáhnout</button>
+        </div>
+      </section>
+
+      <section class="card" id="result" class="hidden">
+        <h2>Vytěžená data</h2>
+        <table id="tbl" class="kv">
+          <tbody></tbody>
+        </table>
+        <h3>Validace</h3>
+        <ul id="valid" class="checks"></ul>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>© 2025 Extrakce faktur</span>
+      <span class="sep">•</span>
+      <span>Frontend inspirován stylem Modul Servis</span>
+    </div>
+  </footer>
+
   <!-- Loading overlay -->
   <div id="loadingOverlay" class="loading hidden">
     <div class="spinner"></div>
-    <div class="loading-text">Zpracovávám fakturu...</div>
+    <div class="loading-text">Zpracovávám…</div>
   </div>
-  
+
   <script src="/script.js"></script>
-  <script src="/spinner-patch.js"></script>
+
+  <!-- Script pro zobrazení názvu souboru -->
+  <script>
+  (function(){
+    const input = document.getElementById('file');
+    if (!input) return;
+    const label = input.closest('label');
+    const span = label ? label.querySelector('span') : null;
+    const original = span ? span.textContent : 'Vybrat soubor';
+    input.addEventListener('change', () => {
+      const f = input.files && input.files[0];
+      if (span) span.textContent = f ? `📄 ${f.name}` : original;
+    });
+  })();
+  </script>
 </body>
 </html>
