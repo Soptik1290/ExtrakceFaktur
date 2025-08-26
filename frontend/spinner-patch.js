@@ -34,6 +34,8 @@ function hideLoading() {
         window.toast = function(msg, type) {
           if (msg === '✅ Extrakce dokončena úspěšně') {
             extractionSuccessful = true;
+            // Skryjeme animaci ihned po úspěšném zpracování
+            hideLoading();
           }
           // Voláme původní funkci toast
           originalToast(msg, type);
@@ -51,7 +53,11 @@ function hideLoading() {
           toast('❌ Nastala chyba při zpracování faktury', 'error');
         }
       } finally { 
-        hideLoading(); 
+        // Skryjeme animaci pouze pokud zpracování nebylo úspěšné
+        // (v případě úspěchu už byla animace skryta)
+        if (!extractionSuccessful) {
+          hideLoading();
+        }
       }
     }, { once: false });
   }
@@ -73,6 +79,8 @@ function hideLoading() {
         window.toast = function(msg, type) {
           if (msg === '💾 Soubor byl stažen') {
             exportSuccessful = true;
+            // Skryjeme animaci ihned po úspěšném exportu
+            hideLoading();
           }
           // Voláme původní funkci toast
           originalToast(msg, type);
@@ -90,7 +98,11 @@ function hideLoading() {
           toast('❌ Nastala chyba při exportu dat', 'error');
         }
       } finally { 
-        hideLoading(); 
+        // Skryjeme animaci pouze pokud export nebyl úspěšný
+        // (v případě úspěchu už byla animace skryta)
+        if (!exportSuccessful) {
+          hideLoading();
+        }
       }
     }, { once: false });
   }

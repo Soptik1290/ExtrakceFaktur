@@ -11,15 +11,15 @@
   <!-- Header s firemním stylem -->
   <div class="header">
     <div class="header-content">
-      <h1>📄 Invoice Extractor</h1>
-      <p>Interní nástroj pro automatickou extrakci dat z faktur</p>
+      <h1>📄 Invoice Extractor Pro</h1>
+      <p>Profesionální nástroj pro automatickou extrakci a zpracování dat z faktur</p>
     </div>
   </div>
 
   <div class="container">
     <!-- Upload sekce -->
     <div class="card section-spacing">
-      <h2>📤 Nahrání faktury</h2>
+      <h2>📤 Nahrání a zpracování faktury</h2>
       <div class="form-section">
         <div class="form-row">
           <div class="form-group">
@@ -44,7 +44,7 @@
           </div>
           <div class="form-group">
             <label>&nbsp;</label>
-            <button id="go" class="btn-primary">🚀 Zpracovat fakturu</button>
+            <button id="go" class="btn-primary">🚀 Zpracovat dokument</button>
           </div>
         </div>
       </div>
@@ -55,16 +55,16 @@
         <div>
           <!-- JSON výstup -->
           <div class="card json-section section-spacing">
-            <h3>📋 Strukturovaná data (JSON)</h3>
+            <h3>📋 Strukturovaná data</h3>
             <pre id="jsonOut"></pre>
             <div style="margin-top: 1rem;">
-              <button id="copyJson" class="btn-outline">📋 Kopírovat JSON</button>
+              <button id="copyJson" class="btn-outline">📋 Kopírovat data</button>
             </div>
           </div>
           
           <!-- Export sekce -->
           <div class="card export-section">
-            <h3>💾 Export dat</h3>
+            <h3>💾 Export a uložení dat</h3>
             <div class="export-controls">
               <div class="form-group">
                 <label for="exportFmt">Formát</label>
@@ -81,7 +81,7 @@
               </div>
               <div class="form-group">
                 <label>&nbsp;</label>
-                <button id="doExport" class="btn-primary">⬇️ Stáhnout</button>
+                <button id="doExport" class="btn-primary">⬇️ Exportovat data</button>
               </div>
             </div>
           </div>
@@ -90,7 +90,7 @@
         <div>
           <!-- Tabulka dat -->
           <div class="card table-section section-spacing">
-            <h3>📊 Extrahovaná data</h3>
+            <h3>📊 Přehled extrahovaných dat</h3>
             <div class="table-container">
               <table id="tbl">
                 <thead>
@@ -106,7 +106,7 @@
           
           <!-- Validace -->
           <div class="card validation-section">
-            <h3>✅ Validace dat</h3>
+            <h3>✅ Kontrola a validace dat</h3>
             <ul id="valid" class="validation-list"></ul>
           </div>
         </div>
@@ -117,7 +117,7 @@
   <!-- Loading overlay -->
   <div id="loadingOverlay" class="loading hidden">
     <div class="spinner"></div>
-    <div class="loading-text">Zpracovávám fakturu...</div>
+    <div class="loading-text">Probíhá zpracování dokumentu...</div>
   </div>
   
   <script src="/script.js"></script>
