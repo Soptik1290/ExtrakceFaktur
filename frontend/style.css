@@ -203,9 +203,7 @@ body {
   font-size: 0.9rem;
 }
 
-input[type="file"] {
-  display: none;
-}
+.file-upload-label input[type="file"] { display: none; }
 
 .file-upload-label {
   display: inline-flex;
