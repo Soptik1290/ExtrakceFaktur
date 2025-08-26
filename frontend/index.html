@@ -8,48 +8,83 @@
 </head>
 <body>
   <div class="container">
-    <h1>Invoice Extractor (AI + Template + Heuristics)</h1>
-    <p>Upload an invoice (PDF/JPG/PNG). Choose method or leave Auto.</p>
-    <div class="card">
-      <div class="row">
-        <input type="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff" />
-        <select id="method">
+    <div class="header">
+      <h1>Invoice Extractor</h1>
+      <p>Inteligentní extrakce dat z faktur pomocí AI, šablon a heuristik</p>
+    </div>
+
+    <div class="card upload-card">
+      <div class="form-row">
+        <label for="file" class="file-upload-label">
+          📄 Vybrat fakturu
+          <input type="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff" />
+        </label>
+        <select id="method" class="btn-secondary">
           <option value="auto" selected>Auto</option>
-          <option value="template">Template</option>
+          <option value="template">Šablona</option>
           <option value="llm">LLM (AI)</option>
-          <option value="heuristic">Heuristic only</option>
+          <option value="heuristic">Pouze heuristiky</option>
         </select>
-        <button id="go">Extract</button>
+        <button id="go" class="btn-primary">🚀 Extrahovat data</button>
       </div>
     </div>
 
     <div id="result" class="hidden">
-      <h2>Result</h2>
+      <h2 style="text-align: center; color: white; margin-bottom: 2rem; font-size: 2rem;">Výsledky extrakce</h2>
       <div class="grid">
         <div>
-          <h3>JSON</h3>
-          <pre id="jsonOut"></pre>
-          <div class="row">
-            <label for="exportFmt">Export as:</label>
-            <select id="exportFmt">
-              <option value="json">JSON</option>
-              <option value="txt">TXT</option>
-              <option value="csv">CSV</option>
-              <option value="xlsx">Excel (XLSX)</option>
-            </select>
-            <input id="exportName" placeholder="filename (optional)" />
-            <button id="doExport">Download</button>
+          <div class="card json-section">
+            <h3>📋 JSON výstup</h3>
+            <pre id="jsonOut"></pre>
+            <button id="copyJson" class="btn-secondary" style="margin-top: 1rem;">📋 Kopírovat JSON</button>
+          </div>
+          
+          <div class="card export-section">
+            <h3>💾 Export dat</h3>
+            <div class="export-row">
+              <label for="exportFmt">Formát:</label>
+              <select id="exportFmt">
+                <option value="json">JSON</option>
+                <option value="txt">TXT</option>
+                <option value="csv">CSV</option>
+                <option value="xlsx">Excel (XLSX)</option>
+              </select>
+              <input id="exportName" placeholder="Název souboru (volitelné)" />
+              <button id="doExport" class="btn-primary">⬇️ Stáhnout</button>
+            </div>
           </div>
         </div>
+        
         <div>
-          <h3>Parsed Table</h3>
-          <table id="tbl"><tbody></tbody></table>
-          <h3>Validation</h3>
-          <ul id="valid"></ul>
+          <div class="card table-section">
+            <h3>📊 Extrahovaná data</h3>
+            <table id="tbl">
+              <thead>
+                <tr>
+                  <th>Pole</th>
+                  <th>Hodnota</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          
+          <div class="card validation-section">
+            <h3>✅ Validace dat</h3>
+            <ul id="valid" class="validation-list"></ul>
+          </div>
         </div>
       </div>
     </div>
   </div>
+  
+  <!-- Loading overlay -->
+  <div id="loadingOverlay" class="loading hidden">
+    <div class="spinner"></div>
+    <div class="loading-text">Zpracovávám fakturu...</div>
+  </div>
+  
   <script src="/script.js"></script>
+  <script src="/spinner-patch.js"></script>
 </body>
 </html>

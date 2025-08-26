@@ -35,7 +35,8 @@ function rowWithCopy(label, value, computed) {
   const span = document.createElement('span'); span.className = 'val'; span.textContent = (value ?? '').toString();
   if (computed) {
     const small = document.createElement('small');
-    small.className = 'muted';
+    small.className = 'computed-badge';
+    small.style.cssText = 'color: #28a745; font-weight: 600; margin-left: 0.5rem;';
     small.textContent = ' (počítáno)';
     span.appendChild(small);
   }
@@ -50,7 +51,10 @@ function rowWithCopy(label, value, computed) {
 async function extract() {
   const file = document.getElementById('file').files[0];
   const method = document.getElementById('method').value;
-  if (!file) { alert('Vyber soubor.'); return; }
+  if (!file) { 
+    toast('⚠️ Nejdříve vyberte soubor s fakturou');
+    return; 
+  }
 
   const fd = new FormData();
   fd.append('file', file);
@@ -59,7 +63,10 @@ async function extract() {
     method: 'POST',
     body: fd
   });
-  if (!res.ok) { alert('Extraction failed.'); return; }
+  if (!res.ok) { 
+    toast('❌ Extrakce se nezdařila');
+    return; 
+  }
   const data = await res.json();
   lastData = data;
   document.getElementById('result').classList.remove('hidden');
@@ -110,15 +117,27 @@ async function extract() {
   ];
   items.forEach(([label, ok]) => {
     const li = document.createElement('li');
-    li.innerHTML = ok === true ? `✅ <span class="ok">${label}</span>` :
-                 ok === false ? `⚠️ <span class="bad">${label}</span>` :
-                 `ℹ️ ${label}: (nelze ověřit)`;
+    if (ok === true) {
+      li.className = 'ok';
+      li.innerHTML = `✅ ${label}`;
+    } else if (ok === false) {
+      li.className = 'bad';
+      li.innerHTML = `❌ ${label}`;
+    } else {
+      li.className = 'info';
+      li.innerHTML = `ℹ️ ${label} (nelze ověřit)`;
+    }
     valUl.appendChild(li);
   });
+  
+  toast('✅ Extrakce dokončena úspěšně');
 }
 
 async function doExport() {
-  if (!lastData) { alert('Nejdřív vytěž fakturu.'); return; }
+  if (!lastData) { 
+    toast('⚠️ Nejdříve proveďte extrakci dat');
+    return; 
+  }
   const fmt = document.getElementById('exportFmt').value;
   const name = document.getElementById('exportName').value || 'invoice_export';
   const payload = { format: fmt, data: (lastData.data || {}), filename: name };
@@ -127,11 +146,15 @@ async function doExport() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
-  if (!res.ok) { alert('Export failed.'); return; }
+  if (!res.ok) { 
+    toast('❌ Export se nezdařil');
+    return; 
+  }
   const blob = await res.blob();
   const ext = fmt === 'xlsx' ? 'xlsx' : (fmt === 'csv' ? 'csv' : (fmt === 'txt' ? 'txt' : 'json'));
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = `${name}.${ext}`; a.click();
+  toast('💾 Soubor byl stažen');
 }
 
 window.extract = extract;
