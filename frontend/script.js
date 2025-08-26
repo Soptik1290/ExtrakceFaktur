@@ -27,11 +27,18 @@ async function copyText(text) {
 }
 
 // Build a table row with a copy button
-function rowWithCopy(label, value) {
+function rowWithCopy(label, value, computed) {
+  if (value == null || value === '') return null;
   const tr = document.createElement('tr');
   const td1 = document.createElement('td'); td1.textContent = label;
   const td2 = document.createElement('td');
   const span = document.createElement('span'); span.className = 'val'; span.textContent = (value ?? '').toString();
+  if (computed) {
+    const small = document.createElement('small');
+    small.className = 'muted';
+    small.textContent = ' (počítáno)';
+    span.appendChild(small);
+  }
   const btn = document.createElement('button'); btn.className = 'copybtn'; btn.title = 'Kopírovat';
   btn.innerHTML = '📋';
   btn.addEventListener('click', () => copyText((value ?? '').toString()));
@@ -66,23 +73,31 @@ async function extract() {
   // Table
   const tbody = document.querySelector('#tbl tbody'); tbody.innerHTML = '';
   const d = data.data || {}; const sup = d.dodavatel || {};
+  const computed = d._computed || {};
   const rows = [
-    ['Variabilní symbol', d.variabilni_symbol],
-    ['Datum vystavení', d.datum_vystaveni],
-    ['Splatnost', d.datum_splatnosti],
-    ['DUZP', d.duzp],
-    ['Částka bez DPH', d.castka_bez_dph],
-    ['DPH', d.dph],
-    ['Částka s DPH', d.castka_s_dph],
-    ['Měna', d.mena],
-    ['Dodavatel – název', sup.nazev],
-    ['Dodavatel – IČO', sup.ico],
-    ['Dodavatel – DIČ', sup.dic],
-    ['Dodavatel – adresa', sup.adresa],
-    ['Confidence', d.confidence],
-    ['Template', d._template || '']
+    ['Variabilní symbol', d.variabilni_symbol, null],
+    ['Datum vystavení', d.datum_vystaveni, null],
+    ['Splatnost', d.datum_splatnosti, null],
+    ['DUZP', d.duzp, null],
+    ['Částka bez DPH', d.castka_bez_dph, 'castka_bez_dph'],
+    ['DPH', d.dph, 'dph'],
+    ['Částka s DPH', d.castka_s_dph, 'castka_s_dph'],
+    ['Měna', d.mena, null],
+    ['Dodavatel – název', sup.nazev, null],
+    ['Dodavatel – IČO', sup.ico, null],
+    ['Dodavatel – DIČ', sup.dic, null],
+    ['Dodavatel – adresa', sup.adresa, null],
+    ['Způsob úhrady', d.platba_zpusob, null],
+    ['Banka příjemce', d.banka_prijemce, null],
+    ['Číslo účtu příjemce', d.ucet_prijemce, null],
+    ['Důvěryhodnost', d.confidence != null ? Math.round(d.confidence * 100) + ' %' : null, null],
+    // Template only if non-empty
+    d._template ? ['Použitá šablona', d._template, null] : null,
   ];
-  rows.forEach(([k,v]) => tbody.appendChild(rowWithCopy(k, v)));
+  rows.forEach(([k,v,key]) => {
+    const row = rowWithCopy(k,v, computed[key]);
+    if (row) tbody.appendChild(row);
+  });
 
   // Validations
   const valUl = document.getElementById('valid'); valUl.innerHTML = '';
