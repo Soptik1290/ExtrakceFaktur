@@ -115,22 +115,22 @@ async function extract() {
   const valUl = document.getElementById('valid'); valUl.innerHTML = '';
   const v = data.validations || {};
   const items = [
-    ['Variabilní symbol', v.variabilni_symbol],
-    ['IČO checksum', v.ico],
-    ['DIČ pattern', v.dic],
-    ['Součet (bezDPH + DPH = s DPH)', v.sum_check]
+    ['Variabilní symbol', v.variabilni_symbol, 'Kontrola formátu variabilního symbolu'],
+    ['IČO checksum', v.ico, 'Ověření kontrolního součtu IČO'],
+    ['DIČ pattern', v.dic, 'Kontrola formátu DIČ'],
+    ['Součet (bezDPH + DPH = s DPH)', v.sum_check, 'Ověření matematické správnosti částek']
   ];
-  items.forEach(([label, ok]) => {
+  items.forEach(([label, ok, description]) => {
     const li = document.createElement('li');
     if (ok === true) {
       li.className = 'ok';
-      li.innerHTML = `✅ ${label}`;
+      li.innerHTML = `<div class="validation-item"><div class="validation-header">✅ ${label}</div><div class="validation-description">${description}</div></div>`;
     } else if (ok === false) {
       li.className = 'bad';
-      li.innerHTML = `❌ ${label}`;
+      li.innerHTML = `<div class="validation-item"><div class="validation-header">❌ ${label}</div><div class="validation-description">${description}</div></div>`;
     } else {
       li.className = 'info';
-      li.innerHTML = `ℹ️ ${label} (nelze ověřit)`;
+      li.innerHTML = `<div class="validation-item"><div class="validation-header">ℹ️ ${label}</div><div class="validation-description">${description} (nelze ověřit)</div></div>`;
     }
     valUl.appendChild(li);
   });

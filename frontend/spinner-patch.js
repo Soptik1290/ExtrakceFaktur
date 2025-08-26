@@ -6,7 +6,7 @@ function showLoading() {
     // Aktualizovat text podle akce
     const loadingText = overlay.querySelector('.loading-text');
     if (loadingText) {
-      loadingText.textContent = 'Zpracovávám fakturu...';
+      loadingText.textContent = 'Probíhá zpracování dokumentu...';
     }
   }
 }
