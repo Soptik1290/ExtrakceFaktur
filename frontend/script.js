@@ -44,7 +44,10 @@ function rowWithCopy(label, value, computed) {
   }
   const btn = document.createElement('button'); btn.className = 'copybtn'; btn.title = 'Kopírovat';
   btn.innerHTML = '📋';
-  btn.addEventListener('click', () => copyText((value ?? '').toString()));
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    copyText((value ?? '').toString());
+  });
   td2.appendChild(span); td2.appendChild(btn);
   tr.appendChild(td1); tr.appendChild(td2);
   return tr;
@@ -135,8 +138,13 @@ async function extract() {
     valUl.appendChild(li);
   });
   
-  // Explicitně zobrazíme hlášku o úspěšné extrakci
+  // Explicitně zobrazíme hlášku o úspěšné extrakci a skryjeme animaci
   toast('✅ Extrakce dokončena úspěšně');
+  
+  // Skryjeme načítací overlay
+  setTimeout(() => {
+    document.getElementById('loadingOverlay').style.display = 'none';
+  }, 500);
 }
 
 async function doExport() {
