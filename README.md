@@ -1,24 +1,79 @@
-# Invoice Extractor – Export (JSON/TXT/CSV/XLSX) + Templates + LLM + Heuristics
+# 🧾 Faktury – Extrakce dat z faktur
 
-## Export
-- Endpoint: `POST /api/export` with JSON body:
-  ```json
-  { "format": "json|txt|csv|xlsx", "data": { ...extracted_data... }, "filename": "optional_name" }
-  ```
-- Vrátí binární soubor ke stažení (Content-Disposition: attachment).
+Tento projekt slouží k **automatické extrakci údajů z faktur** pomocí OCR, heuristik a jazykových modelů.  
+Výsledkem je jednotný JSON s klíčovými informacemi (dodavatel, odběratel, částky, variabilní symbol, splatnost…).
 
-## Quick Start
+---
+
+## 🚀 Funkcionality
+- Nahrání faktury přes webové rozhraní (frontend).
+- Automatická extrakce dat pomocí backendu:
+  - **OCR** – převod obrazu na text.
+  - **Heuristiky** – základní pravidla a regulární výrazy.
+  - **LLM** – pokročilá interpretace faktur.
+  - **Šablony** – specifická pravidla pro vybrané dodavatele (Alza, ČEZ, O2, T-Mobile…).
+- Výstup v jednotném JSON formátu.
+- Ukázkové faktury pro testování.
+- Docker kontejner pro snadné spuštění.
+
+---
+
+## 📂 Struktura projektu
+```
+backend/        # Python logika pro extrakci
+frontend/       # HTML, CSS, JS rozhraní
+samples/        # ukázkové faktury
+scripts/        # generátor testovacích faktur
+requirements.txt
+Dockerfile
+```
+
+---
+
+## 🔧 Instalace a spuštění
+
+### Lokální prostředí
+1. Naklonuj repo:
+   ```bash
+   git clone https://github.com/uzivatel/Faktury.git
+   cd Faktury/ExtrakceFaktur
+   ```
+2. Vytvoř virtuální prostředí a nainstaluj závislosti:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate   # Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+3. Spusť backend:
+   ```bash
+   python backend/app.py
+   ```
+4. Otevři `frontend/index.html` v prohlížeči.
+
+### Docker
 ```bash
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env
-uvicorn backend.app:app --host 0.0.0.0 --port 8000
+docker build -t faktury .
+docker run -p 8000:8000 faktury
 ```
-Otevři: http://localhost:8000
 
-## Env
-```
-OPENAI_API_KEY=            # optional for LLM
-OPENAI_MODEL=gpt-4o-mini
-```
+---
+
+## 📸 Ukázky
+- Najdeš v adresáři `samples/`.
+
+---
+
+## 🛠 Technologie
+- **Backend**: Python 3.10, OCR (Tesseract/…), heuristiky, LLM
+- **Frontend**: HTML, CSS, JavaScript
+- **Kontejnerizace**: Docker
+
+---
+
+## 🤝 Příspěvky
+Pull requesty a issues jsou vítány! 🎉
+
+---
+
+## 📜 Licence
+MIT
