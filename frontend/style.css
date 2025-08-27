@@ -240,6 +240,29 @@ select, button, input[type="text"] {
   width: 100%;
 }
 
+/* Stylovaný obal jen pro select Metoda extrakce */
+.select-wrap {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+.select-wrap select {
+  padding-right: 2.5rem; /* prostor pro šipku */
+}
+.select-wrap::after {
+  content: '';
+  position: absolute;
+  right: 0.9rem;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  transform: translateY(-50%) rotate(45deg);
+  border-right: 2px solid #3b82f6; /* barva dle akcentu */
+  border-bottom: 2px solid #3b82f6;
+  opacity: 0.9;
+}
+
 select:focus, input[type="text"]:focus {
   outline: none;
   border-color: #3b82f6;
