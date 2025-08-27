@@ -118,7 +118,7 @@ label.file span:hover{
 }
 
 /* Two-column layout spacing (if you have .container/.main in your CSS keep it) */
-.container, .wrap{ max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+.container, .wrap{ max-width: 1440px; margin: 0 auto; padding: 0 20px; }
 
 /* Tables */
 table{ width: 100%; border-collapse: collapse; }
