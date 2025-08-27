@@ -67,7 +67,7 @@ input::placeholder{ color:#9ca3af; }
   color: var(--btn-color);
   border: none; 
   border-radius: 12px;
-  padding: 12px 24px; 
+  padding: 1rem; 
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
