@@ -34,9 +34,13 @@ def _sum_valid(bez_dph, dph, s_dph, tol=0.03):
     return abs((b + d) - s) <= tol
 
 def validate_extraction(data: dict) -> dict:
+    data = data or {}
     vs_ok = _is_vs(data.get("variabilni_symbol"))
-    ico = data.get("dodavatel", {}).get("ico")
-    dic = data.get("dodavatel", {}).get("dic")
+    supplier = data.get("dodavatel")
+    if not isinstance(supplier, dict):
+        supplier = {"ico": None, "dic": None}
+    ico = supplier.get("ico")
+    dic = supplier.get("dic")
     import re as _re
     ico_ok = _ico_checksum(_re.sub(r"\D","",ico)) if ico else False
     dic_ok = _dic_valid(dic) if dic else False
