@@ -189,7 +189,23 @@ body {
   gap: 1.5rem; 
   align-items: center; 
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: space-between;
+}
+
+/* Širší rozložení upload sekce: tlačítko vlevo, info vedle něj */
+.file-group {
+  flex: 1 1 60%;
+}
+.file-group .file-upload-label {
+  display: inline-flex;
+  min-width: 280px;
+}
+.file-group #file-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: 1rem;
+  vertical-align: middle;
 }
 
 .form-group {
