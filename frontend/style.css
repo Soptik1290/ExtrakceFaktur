@@ -257,7 +257,8 @@ select, button, input[type="text"] {
   width: 14px;
   height: 14px;
   pointer-events: none;
-  transform: translateY(-50%) rotate(45deg);
+  /* jemné posunutí nahoru pro optické vycentrování s textem */
+  transform: translateY(-56%) rotate(45deg);
   border-right: 2px solid #3b82f6; /* barva dle akcentu */
   border-bottom: 2px solid #3b82f6;
   opacity: 0.9;
