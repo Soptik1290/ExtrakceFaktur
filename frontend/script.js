@@ -129,7 +129,7 @@ async function extract() {
       // Template only if non-empty
       d._template ? ['Použitá šablona', d._template, null] : null,
     ];
-    rows.forEach(([k,v,key]) => {
+    rows.filter(Boolean).forEach(([k,v,key]) => {
       const row = rowWithCopy(k,v, computed[key]);
       if (row) tbody.appendChild(row);
     });
