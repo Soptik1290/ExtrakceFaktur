@@ -252,10 +252,10 @@ select, button, input[type="text"] {
 .select-wrap::after {
   content: '';
   position: absolute;
-  right: 0.9rem;
+  right: 1rem;
   top: 50%;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   pointer-events: none;
   transform: translateY(-50%) rotate(45deg);
   border-right: 2px solid #3b82f6; /* barva dle akcentu */
@@ -282,9 +282,8 @@ select {
   position: relative;
 }
 #method {
-  /* výraznější šipka pro volbu režimu extrakce */
-  background-size: 18px 18px;
-  background-position: right 0.85rem center;
+  /* výraznější šipka pro volbu režimu extrakce – použijeme obal s pseudo-elementem */
+  background-image: none;
 }
 
 select:hover, select:focus {
