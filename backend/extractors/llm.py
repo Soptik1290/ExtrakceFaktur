@@ -67,7 +67,23 @@ def extract_fields_llm(text: str) -> dict:
     for k in ["castka_bez_dph","dph","castka_s_dph"]:
         data[k] = _num(data.get(k))
 
-    data.setdefault("dodavatel", {"nazev": None, "ico": None, "dic": None, "adresa": None})
+    # Ensure dodavatel is a dict with expected keys even if LLM returns a string/list/null
+    supplier = data.get("dodavatel")
+    if not isinstance(supplier, dict):
+        supplier = {"nazev": supplier if isinstance(supplier, str) else None,
+                    "ico": None, "dic": None, "adresa": None}
+    else:
+        # Coerce unexpected nested structures to strings where sensible
+        for key in ["nazev", "ico", "dic", "adresa"]:
+            val = supplier.get(key)
+            if isinstance(val, (list, dict)):
+                supplier[key] = json.dumps(val, ensure_ascii=False)
+    data["dodavatel"] = {
+        "nazev": supplier.get("nazev"),
+        "ico": supplier.get("ico"),
+        "dic": supplier.get("dic"),
+        "adresa": supplier.get("adresa"),
+    }
     for k in ["mena","platba_zpusob","banka_prijemce","ucet_prijemce"]:
         data.setdefault(k, None)
     data.setdefault("confidence", 0.75)
