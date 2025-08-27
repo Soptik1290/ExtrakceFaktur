@@ -97,77 +97,86 @@ async function extract() {
     }
     const data = await res.json();
     lastData = data;
-    document.getElementById('result').classList.remove('hidden');
+    const resultEl = document.getElementById('result');
+    if (resultEl) resultEl.classList.remove('hidden');
 
-    // JSON out + Copy JSON
-    const pretty = JSON.stringify(data, null, 2);
-    document.getElementById('jsonOut').textContent = pretty;
-    const copyJsonBtn = document.getElementById('copyJson');
-    if (copyJsonBtn) copyJsonBtn.onclick = () => copyText(pretty);
+    try {
+      // JSON out + Copy JSON
+      const pretty = JSON.stringify(data, null, 2);
+      const jsonOutEl = document.getElementById('jsonOut');
+      if (jsonOutEl) jsonOutEl.textContent = pretty;
+      const copyJsonBtn = document.getElementById('copyJson');
+      if (copyJsonBtn) copyJsonBtn.onclick = () => copyText(pretty);
 
-    // Table
-    const tbody = document.querySelector('#tbl tbody'); tbody.innerHTML = '';
-    const d = data.data || {}; const sup = d.dodavatel || {};
-    const computed = d._computed || {};
-    const rows = [
-      ['Variabilní symbol', d.variabilni_symbol, null],
-      ['Datum vystavení', d.datum_vystaveni, null],
-      ['Splatnost', d.datum_splatnosti, null],
-      ['DUZP', d.duzp, null],
-      ['Částka bez DPH', d.castka_bez_dph, 'castka_bez_dph'],
-      ['DPH', d.dph, 'dph'],
-      ['Částka s DPH', d.castka_s_dph, 'castka_s_dph'],
-      ['Měna', d.mena, null],
-      ['Dodavatel – název', sup.nazev, null],
-      ['Dodavatel – IČO', sup.ico, null],
-      ['Dodavatel – DIČ', sup.dic, null],
-      ['Dodavatel – adresa', sup.adresa, null],
-      ['Způsob úhrady', d.platba_zpusob, null],
-      ['Banka příjemce', d.banka_prijemce, null],
-      ['Číslo účtu příjemce', d.ucet_prijemce, null],
-      ['Důvěryhodnost', d.confidence != null ? Math.round(d.confidence * 100) + ' %' : null, null],
-      // Template only if non-empty
-      d._template ? ['Použitá šablona', d._template, null] : null,
-    ];
-    rows.filter(Boolean).forEach(([k,v,key]) => {
-      const row = rowWithCopy(k,v, computed[key]);
-      if (row) tbody.appendChild(row);
-    });
+      // Table
+      const tbody = document.querySelector('#tbl tbody');
+      if (tbody) tbody.innerHTML = '';
+      const d = data.data || {}; const sup = d.dodavatel || {};
+      const computed = d._computed || {};
+      const rows = [
+        ['Variabilní symbol', d.variabilni_symbol, null],
+        ['Datum vystavení', d.datum_vystaveni, null],
+        ['Splatnost', d.datum_splatnosti, null],
+        ['DUZP', d.duzp, null],
+        ['Částka bez DPH', d.castka_bez_dph, 'castka_bez_dph'],
+        ['DPH', d.dph, 'dph'],
+        ['Částka s DPH', d.castka_s_dph, 'castka_s_dph'],
+        ['Měna', d.mena, null],
+        ['Dodavatel – název', sup.nazev, null],
+        ['Dodavatel – IČO', sup.ico, null],
+        ['Dodavatel – DIČ', sup.dic, null],
+        ['Dodavatel – adresa', sup.adresa, null],
+        ['Způsob úhrady', d.platba_zpusob, null],
+        ['Banka příjemce', d.banka_prijemce, null],
+        ['Číslo účtu příjemce', d.ucet_prijemce, null],
+        ['Důvěryhodnost', d.confidence != null ? Math.round(d.confidence * 100) + ' %' : null, null],
+        // Template only if non-empty
+        d._template ? ['Použitá šablona', d._template, null] : null,
+      ];
+      rows.filter(Boolean).forEach(([k,v,key]) => {
+        const row = rowWithCopy(k,v, computed[key]);
+        if (row && tbody) tbody.appendChild(row);
+      });
 
-    // Validations
-    const valUl = document.getElementById('valid'); valUl.innerHTML = '';
-    const v = data.validations || {};
-    const items = [
-      ['Variabilní symbol', v.variabilni_symbol, 'Kontrola formátu variabilního symbolu'],
-      ['IČO checksum', v.ico, 'Ověření kontrolního součtu IČO'],
-      ['DIČ pattern', v.dic, 'Kontrola formátu DIČ'],
-      ['Součet (bezDPH + DPH = s DPH)', v.sum_check, 'Ověření matematické správnosti částek']
-    ];
-    items.forEach(([label, ok, description]) => {
-      const li = document.createElement('li');
-      if (ok === true) {
-        li.className = 'ok';
-        li.innerHTML = `<div class="validation-item"><div class="validation-header">✅ ${label}</div><div class="validation-description">${description}</div></div>`;
-      } else if (ok === false) {
-        li.className = 'bad';
-        li.innerHTML = `<div class="validation-item"><div class="validation-header">❌ ${label}</div><div class="validation-description">${description}</div></div>`;
-      } else {
-        li.className = 'info';
-        li.innerHTML = `<div class="validation-item"><div class="validation-header">ℹ️ ${label}</div><div class="validation-description">${description} (nelze ověřit)</div></div>`;
+      // Validations
+      const valUl = document.getElementById('valid');
+      if (valUl) {
+        valUl.innerHTML = '';
+        const v = data.validations || {};
+        const items = [
+          ['Variabilní symbol', v.variabilni_symbol, 'Kontrola formátu variabilního symbolu'],
+          ['IČO checksum', v.ico, 'Ověření kontrolního součtu IČO'],
+          ['DIČ pattern', v.dic, 'Kontrola formátu DIČ'],
+          ['Součet (bezDPH + DPH = s DPH)', v.sum_check, 'Ověření matematické správnosti částek']
+        ];
+        items.forEach(([label, ok, description]) => {
+          const li = document.createElement('li');
+          if (ok === true) {
+            li.className = 'ok';
+            li.innerHTML = `<div class="validation-item"><div class="validation-header">✅ ${label}</div><div class="validation-description">${description}</div></div>`;
+          } else if (ok === false) {
+            li.className = 'bad';
+            li.innerHTML = `<div class="validation-item"><div class="validation-header">❌ ${label}</div><div class="validation-description">${description}</div></div>`;
+          } else {
+            li.className = 'info';
+            li.innerHTML = `<div class="validation-item"><div class="validation-header">ℹ️ ${label}</div><div class="validation-description">${description} (nelze ověřit)</div></div>`;
+          }
+          valUl.appendChild(li);
+        });
       }
-      valUl.appendChild(li);
-    });
-    
-    // Explicitně zobrazíme hlášku o úspěšné extrakci
-    toast('✅ Extrakce dokončena úspěšně');
-    
-    // Skryjeme loading overlay
-    if (loadingOverlay) {
-      loadingOverlay.classList.add('hidden');
+
+      // Explicitně zobrazíme hlášku o úspěšné extrakci
+      toast('✅ Extrakce dokončena úspěšně');
+    } catch (renderErr) {
+      console.error('Chyba při vykreslení výsledků:', renderErr);
+      toast('⚠️ Data zpracována, část UI se nepodařilo vykreslit');
+    } finally {
+      // Skryjeme loading overlay a vždy ukažme success overlay
+      if (loadingOverlay) {
+        loadingOverlay.classList.add('hidden');
+      }
+      showSuccessOverlay();
     }
-    
-    // Zobrazíme success overlay s fade-out efektem
-    showSuccessOverlay();
     
   } catch (error) {
     console.error('Chyba při extrakci:', error);
