@@ -200,7 +200,7 @@ body {
 
 .form-group label {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 input[type="file"] {
@@ -248,12 +248,14 @@ select, button, input[type="text"] {
 }
 .select-wrap select {
   padding-right: 2.5rem; /* prostor pro šipku */
+  padding-left: 1rem;
+  padding-top: 1rem;
 }
 .select-wrap::after {
   content: '';
   position: absolute;
   right: 1rem;
-  top: 50%;
+  top: 45%;
   width: 14px;
   height: 14px;
   pointer-events: none;
