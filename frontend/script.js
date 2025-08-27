@@ -258,21 +258,28 @@ window.doExport = doExport;
 
 // Funkce pro zobrazení informací o souboru
 function displayFileInfo(file) {
+  if (!file) return;
+  
   const fileInfoEl = document.getElementById('file-info');
   const fileNameEl = document.getElementById('file-name');
   const fileSizeEl = document.getElementById('file-size');
-  if (!file) {
-    if (fileNameEl) fileNameEl.textContent = 'Žádný soubor';
-    if (fileSizeEl) fileSizeEl.textContent = '';
-    if (fileInfoEl) fileInfoEl.classList.remove('hidden');
-    return;
+  
+  // Zobrazení názvu souboru
+  fileNameEl.textContent = `📄 Název: ${file.name}`;
+  
+  // Zobrazení velikosti souboru v KB nebo MB
+  const sizeInKB = file.size / 1024;
+  let sizeText = '';
+  
+  if (sizeInKB < 1024) {
+    sizeText = `📊 Velikost: ${sizeInKB.toFixed(2)} KB`;
+  } else {
+    const sizeInMB = sizeInKB / 1024;
+    sizeText = `📊 Velikost: ${sizeInMB.toFixed(2)} MB`;
   }
   
-  if (fileNameEl) fileNameEl.textContent = `📄 Název: ${file.name}`;
-  const sizeInKB = file.size / 1024;
-  const sizeText = sizeInKB < 1024 ? `📊 Velikost: ${sizeInKB.toFixed(2)} KB` : `📊 Velikost: ${(sizeInKB/1024).toFixed(2)} MB`;
-  if (fileSizeEl) fileSizeEl.textContent = sizeText;
-  if (fileInfoEl) fileInfoEl.classList.remove('hidden');
+  fileSizeEl.textContent = sizeText;
+  fileInfoEl.classList.remove('hidden');
 }
 
 // Hook buttons
@@ -285,6 +292,6 @@ document.getElementById('copyJson')?.addEventListener('click', () => {
 
 // Přidání event listeneru pro změnu souboru
 document.getElementById('file')?.addEventListener('change', (e) => {
-  const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+  const file = e.target.files[0];
   displayFileInfo(file);
 });
