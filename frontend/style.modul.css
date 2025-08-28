@@ -1,0 +1,180 @@
+/* style.modul.css – visual polish aligned with modulservis.cz (deep blue accent) */
+/* Load this AFTER your existing /style.css */
+
+/* Color tokens */
+:root{
+  --ms-bg:        #f7f8fb;
+  --ms-text:      #0f172a;
+  --ms-muted:     #475569;
+  --ms-border:    #e6e9ef;
+
+  --ms-primary:   #1e3a8a; /* deep indigo/blue */
+  --ms-primary-2: #2563eb; /* brighter accent */
+  --ms-primary-3: #3b82f6; /* hover light */
+
+  --ms-panel:     #ffffff;
+  --ms-ghost:     #eef2ff;
+
+  --ms-ok:        #16a34a;
+  --ms-bad:       #dc2626;
+}
+
+/* Base */
+body{ background:var(--ms-bg); color:var(--ms-text); }
+a{ color:var(--ms-primary-2); }
+a:hover{ color:var(--ms-primary-3); }
+
+/* Header */
+.header{
+  background: linear-gradient(180deg, #ffffff, #f9fbff 50%, #f7f8fb);
+  border-bottom: 1px solid var(--ms-border);
+}
+.header-content h1{
+  color: var(--ms-primary);
+  letter-spacing: .2px;
+}
+.header-content p{ color: var(--ms-muted); }
+
+/* Breadcrumb */
+.breadcrumb{ color: var(--ms-muted); }
+.breadcrumb a{ color: var(--ms-primary); }
+.breadcrumb a:hover{ color: var(--ms-primary-2); text-decoration: underline; }
+
+/* Cards */
+.card{
+  background: var(--ms-panel);
+  border: 1px solid var(--ms-border);
+  border-radius: 14px;
+  box-shadow: 0 2px 6px rgba(15,23,42,.04);
+}
+.card h2,.card h3{ color: var(--ms-text); }
+.card .note{ color: var(--ms-muted); }
+
+/* Inputs */
+input[type="text"], input[type="search"], input[type="file"], select, .input, .select{
+  background:#fff; color:var(--ms-text);
+  border:1px solid var(--ms-border);
+  border-radius:10px; padding:10px 12px;
+}
+input::placeholder{ color:#9ca3af; }
+
+/* Buttons */
+.btn, .btn-primary, .btn-outline {
+  --btn-bg: var(--ms-primary-2);
+  --btn-bg-hover: var(--ms-primary-3);
+  --btn-color: #fff;
+  background: var(--btn-bg);
+  color: var(--btn-color);
+  border: none; 
+  border-radius: 12px;
+  padding: 1rem; 
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.btn:hover, .btn-primary:hover { 
+  background: var(--btn-bg-hover); 
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+.btn:active, .btn-primary:active { 
+  transform: translateY(0); 
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);
+}
+.btn-outline {
+  --btn-bg: transparent; 
+  --btn-color: var(--ms-primary-2);
+  background: transparent; 
+  color: var(--btn-color);
+  border: 2px solid var(--ms-primary-2);
+  box-shadow: none;
+}
+.btn-outline:hover { 
+  background: rgba(37, 99, 235, 0.05);
+  border-color: var(--ms-primary-3);
+  color: var(--ms-primary-3);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+}
+.btn.secondary, .btn-primary.secondary { 
+  --btn-bg: var(--ms-primary); 
+  --btn-bg-hover: #2644a1; 
+}
+
+/* File picker label */
+label.file span{
+  border:1px dashed var(--ms-border);
+  background:#fff;
+}
+label.file span:hover{
+  border-color: var(--ms-primary-2);
+  color: var(--ms-primary-2);
+}
+
+/* Two-column layout spacing (if you have .container/.main in your CSS keep it) */
+.container, .wrap{ max-width: 1440px; margin: 0 auto; padding: 0 20px; }
+
+/* Tables */
+table{ width: 100%; border-collapse: collapse; }
+.kv td{ padding: 10px 8px; border-bottom: 1px solid var(--ms-border); vertical-align: middle; }
+.kv tr:nth-child(odd){ background: #fbfcff; }
+.kv tr:hover{ background:#f6f9ff; }
+.kv td:first-child{ color: var(--ms-muted); width: 38%; }
+.kv td .val{ font-weight: 600; }
+
+/* Copy buttons + toast align to light theme */
+.copybtn{
+  margin-left:10px; padding:6px 8px;
+  border-radius:8px; border:1px solid var(--ms-border);
+  background:#fff; color:var(--ms-text); cursor:pointer;
+}
+.copybtn:hover{ background:#f1f5f9; }
+
+#toast{
+  background:#111827; color:#e5e7eb;
+  border-color:#1f2937; border-radius:8px;
+}
+
+/* Validations */
+.checks li{ border-bottom:1px solid var(--ms-border); }
+.ok{ color: var(--ms-ok); } .bad{ color: var(--ms-bad); }
+
+/* Code block */
+.codeblock{
+  background:#0b1220; color:#e2e8f0; border-radius:12px;
+  border: 1px solid #111827;
+}
+
+/* Export row */
+.export-row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.export-row label{ color: var(--ms-muted); }
+
+/* Footer */
+.footer{
+  border-top:1px solid var(--ms-border);
+  color: var(--ms-muted);
+}
+.footer a{ color: var(--ms-muted); }
+.footer a:hover{ color: var(--ms-primary); }
+
+/* Spinner overlay (light tone) */
+.loading{ background: rgba(30,58,138, .08); }
+.spinner{ border:6px solid rgba(30,58,138,.2); border-top-color: var(--ms-primary-2); }
+.loading-text{ color: var(--ms-primary); }
+
+/* Small helpers */
+.tag{ background: var(--ms-ghost); color: var(--ms-primary); padding:.2rem .5rem; border-radius: 999px; border:1px solid #e0e7ff; font-size: 12px; }
+.micro{ font-size: 13px; color: var(--ms-muted); }
+hr{ border:0; border-top:1px solid var(--ms-border); }
+
+label.file span,
+input[type="file"]::file-selector-button,
+input[type="file"]::-webkit-file-upload-button {
+  color: #ffffff !important; /* bílý text */
+}

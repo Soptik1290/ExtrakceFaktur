@@ -12,4 +12,3 @@ regex
 starlette
 reportlab
 openpyxl
-PyMuPDF>=1.23.0

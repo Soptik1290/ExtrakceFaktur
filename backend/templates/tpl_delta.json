@@ -1,0 +1,31 @@
+{
+  "name": "Delta s.r.o. (CZ)",
+  "required_keywords": [
+    "Delta s.r.o.",
+    "IČO"
+  ],
+  "optional_keywords": [
+    "VS:",
+    "DUZP",
+    "K úhradě"
+  ],
+  "fields": {
+    "variabilni_symbol": "(?:VS|Variabilní\\s*symbol)[:\\s]+(\\d{6,12})",
+    "datum_vystaveni": "(?:Datum vystavení|Vystaveno)[:\\s]+([0-9.\\-/ ]{8,})",
+    "datum_splatnosti": "Splatnost[:\\s]+([0-9.\\-/ ]{8,})",
+    "duzp": "DUZP[:\\s]+([0-9.\\-/ ]{8,})",
+    "castka_bez_dph": "(?:Základ daně|Bez DPH)[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)?",
+    "dph": "DPH[^:]*:\\s*([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK|EUR|€)?",
+    "castka_s_dph": "(?:K úhradě|Celkem|Celkem k úhradě)[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)?",
+    "dodavatel_nazev": "(Delta\\s*s\\.r\\.o\\.)",
+    "dodavatel_ico": "IČO[:\\s]+(\\d{8})",
+    "dodavatel_dic": "DIČ[:\\s]+([A-Z]{2}\\d{8,10})",
+    "dodavatel_adresa": "Delta.*?\\n(.*)"
+  },
+  "supplier_defaults": {
+    "nazev": "Delta s.r.o.",
+    "ico": null,
+    "dic": null,
+    "adresa": null
+  }
+}
