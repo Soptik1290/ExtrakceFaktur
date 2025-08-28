@@ -69,7 +69,15 @@ def extract_fields_llm(text: str) -> dict:
 
     # Heuristic correction: prefer amount near labels like "K úhradě/Celkem/Total"
     try:
-        LABELS = [r"celkem k \w*uhra", r"k \w*uhra", r"amount due", r"grand total", r"\btotal\b", r"celkem"]
+        # Diacritic-aware and flexible Czech patterns
+        LABELS = [
+            r"celkem\s+k\s+\w*\s*[uú]hrad[ěe]",
+            r"k\s+\w*\s*[uú]hrad[ěe]",
+            r"celkem",
+            r"amount\s+due",
+            r"grand\s+total",
+            r"\btotal\b",
+        ]
         AMT = r"(\d{1,3}(?:[ \u00A0\u202F]\d{3})*(?:[.,]\d{2})|\d+[.,]\d{2})"
         joined = text or ""
         import re as _re
