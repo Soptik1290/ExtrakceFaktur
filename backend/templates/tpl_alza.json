@@ -1,0 +1,34 @@
+{
+  "name": "Alza.cz a.s. (CZ)",
+  "required_keywords": [
+    "Alza.cz",
+    "Daňový doklad"
+  ],
+  "optional_keywords": [
+    "Variabilní symbol",
+    "Bankovní účet",
+    "Celkem:"
+  ],
+  "fields": {
+    "variabilni_symbol": "Variabiln[íi]\\s*symbol[:\\s]+(\\d{6,12})",
+    "datum_vystaveni": "(?:Datum\\s*vystaven[íi]|Vystaven[íi])[:\\s]+([0-9.\\-/ ]{8,10})",
+    "datum_splatnosti": "(?:Datum\\s*splatnosti|Splatnost)[:\\s]+([0-9.\\-/ ]{8,10})",
+    "duzp": "(?:Datum\\s*uskut\\.\\s*zdaň\\.\\s*plněn[íi]|Datum\\s*uskutečnění\\s*zdanitelného\\s*plnění|DUZP)[:\\s]+([0-9.\\-/ ]{8,10})",
+    "castka_s_dph": "Celkem[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)",
+    "castka_bez_dph": "21\\s*%[^\\n]*?\\b([0-9 \\u00A0.,]+)\\b",
+    "dph": "21\\s*%[^\\n]*?\\b[0-9 \\u00A0.,]+\\b[^\\n]*?\\b([0-9 \\u00A0.,]+)\\b",
+    "dodavatel_nazev": "(Alza\\.cz\\s*a\\.s\\.)",
+    "dodavatel_ico": "\\bI[ČC]:\\s*([0-9]{8})",
+    "dodavatel_dic": "\\bDI[ČC]:\\s*([A-Z]{2}\\d{8,10})",
+    "dodavatel_adresa": "Alza\\.cz\\s*a\\.s\\.\\s*(?:.*?\\n)?([^\\n]+?)\\s*(?=(?:I[ČC]|DI[ČC]|VAT|Daňový|Faktura\\b))",
+    "platba_zpusob": "(?:Zp[uů]sob\\s*[uú]hrady|Zp[uů]sob\\s*platby|Payment\\s*method)[:\\s]+([A-Za-zÁČĎÉĚÍŇÓŘŠŤÚŮÝŽa-záčďéěíňóřšťúůýž /+\\-]+)",
+    "banka_prijemce": "(?:N[aá]zev\\s*Banky|Banka|Bank\\s*name)[:\\s]+([A-Za-z0-9 .,'\\-_/]+)",
+    "ucet_prijemce": "(?:Číslo\\s*účtu|C[ií]slo\\s*u[čc]tu|Account\\s*number)[:\\s]+([0-9\\- ]{1,20}/[0-9]{3,6}|[A-Z]{2}[0-9A-Z ]{12,34})"
+  },
+  "supplier_defaults": {
+    "nazev": "Alza.cz a.s.",
+    "ico": null,
+    "dic": null,
+    "adresa": null
+  }
+}
