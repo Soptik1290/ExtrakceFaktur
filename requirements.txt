@@ -12,3 +12,4 @@ regex
 starlette
 reportlab
 openpyxl
+pdf2image

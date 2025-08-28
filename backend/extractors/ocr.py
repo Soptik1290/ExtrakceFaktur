@@ -53,10 +53,13 @@ def _tesseract_config():
     config = "--oem 3 --psm 6"
     return lang, config
 
-def _image_text_from_pil(img: Image.Image) -> str:
+def _image_text_from_pil(img) -> str:
     # Safety for huge PNGs that can be slow or trigger decompression warnings
     try:
-        Image.MAX_IMAGE_PIXELS = 50_000_000
+        # Set maximum image size to prevent decompression bomb attacks
+        # This attribute might not exist in all Pillow versions
+        if hasattr(Image, 'MAX_IMAGE_PIXELS'):
+            Image.MAX_IMAGE_PIXELS = 50_000_000
     except Exception:
         pass
 
@@ -97,7 +100,15 @@ def extract_text_from_file(filename: str, data: bytes) -> str:
         return _pdf_text(data)
     if any(name.endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".tiff", ".bmp"]):
         return _image_text(data)
+    # For other file types, try to decode as text, but don't fail on binary files
     try:
-        return data.decode("utf-8", errors="ignore")
+        # Check if data looks like text (contains mostly printable ASCII/UTF-8)
+        text_data = data.decode("utf-8", errors="ignore")
+        # If more than 80% of characters are printable, treat as text
+        printable_chars = sum(1 for c in text_data if c.isprintable() or c.isspace())
+        if printable_chars / len(text_data) > 0.8:
+            return text_data
+        else:
+            return ""
     except Exception:
         return ""

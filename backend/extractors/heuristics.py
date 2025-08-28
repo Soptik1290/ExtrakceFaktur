@@ -152,3 +152,61 @@ def extract_total_amount(text: str,
             return max(parsed, key=lambda x: x[1])[1]
 
     return None
+
+def extract_fields_heuristic(text: str) -> dict:
+    """
+    Extract invoice fields using heuristic pattern matching.
+    This is a fallback method when templates and LLM extraction fail.
+    """
+    if not text:
+        return {}
+    
+    result = {}
+    
+    # Extract total amount
+    total = extract_total_amount(text)
+    if total is not None:
+        result["total_amount"] = total
+    
+    # Extract currency if present
+    currency_match = _CURRENCY_RE.search(text)
+    if currency_match:
+        result["currency"] = currency_match.group(1)
+    
+    # Try to find invoice number pattern
+    invoice_number_pattern = r"\b(?:faktura|invoice|č\.|číslo|no\.|number)[\s:]*([A-Z0-9\-_/]+)\b"
+    invoice_match = re.search(invoice_number_pattern, text, re.IGNORECASE)
+    if invoice_match:
+        result["invoice_number"] = invoice_match.group(1)
+    
+    # Try to find date patterns
+    date_patterns = [
+        r"\b(\d{1,2}[./]\d{1,2}[./]\d{2,4})\b",  # DD/MM/YYYY or DD.MM.YYYY
+        r"\b(\d{4}[./-]\d{1,2}[./-]\d{1,2})\b",  # YYYY/MM/DD
+    ]
+    
+    for pattern in date_patterns:
+        date_match = re.search(pattern, text)
+        if date_match:
+            result["invoice_date"] = date_match.group(1)
+            break
+    
+    # Try to find supplier name (simple heuristic: look for common business keywords)
+    supplier_keywords = ["dodavatel", "supplier", "prodejce", "seller", "firma", "company"]
+    lines = text.split('\n')
+    for line in lines:
+        line_lower = line.lower()
+        if any(keyword in line_lower for keyword in supplier_keywords):
+            # Extract the text after the keyword
+            for keyword in supplier_keywords:
+                if keyword in line_lower:
+                    parts = line.split(keyword, 1)
+                    if len(parts) > 1:
+                        supplier = parts[1].strip(' :.,;')
+                        if supplier and len(supplier) > 2:
+                            result["supplier_name"] = supplier
+                            break
+            if "supplier_name" in result:
+                break
+    
+    return result
