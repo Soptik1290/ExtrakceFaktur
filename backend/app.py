@@ -14,6 +14,7 @@ from .extractors.validate import validate_extraction
 from .extractors.postprocess import autofill_amounts
 from .extractors.llm import extract_fields_llm, llm_available
 from .extractors.templates import extract_fields_template
+from .extractors.dual_extractor import dual_extractor
 
 load_dotenv()
 
@@ -36,34 +37,70 @@ class ExtractResponse(BaseModel):
 def health():
     return {"status": "ok"}
 
+@app.get("/api/formats")
+def get_supported_formats():
+    """Get information about supported file formats and extraction methods."""
+    return {
+        "supported_formats": {
+            "pdf": [".pdf"],
+            "image": [".png", ".jpg", ".jpeg", ".tiff", ".bmp"],
+            "text": [".txt"]
+        },
+        "extraction_methods": ["template", "llm", "heuristic", "auto"],
+        "dual_format_enabled": True,
+        "features": [
+            "Automatic PDF ↔ PNG conversion",
+            "Dual format extraction",
+            "Result combination for better accuracy",
+            "Confidence scoring",
+            "Czech diacritics support"
+        ]
+    }
+
 @app.post("/api/extract", response_model=ExtractResponse)
-async def extract(file: UploadFile = File(...), method: Optional[str] = Query("auto")):
+async def extract(file: UploadFile = File(...), method: Optional[str] = Query("auto"), 
+                 use_dual_format: bool = Query(True, description="Use dual format extraction for better accuracy")):
     try:
         content = await file.read()
-        text = extract_text_from_file(filename=file.filename, data=content)
+        
+        if use_dual_format:
+            # Use new dual format extractor for better accuracy
+            result = dual_extractor.extract_fields_dual_format(
+                filename=file.filename, 
+                data=content, 
+                preferred_method=method
+            )
+            used_method = result.get('_source', 'dual_format')
+            
+            # Remove metadata fields for response
+            metadata_fields = ['_source', '_confidence', '_format', '_methods_used', '_total_results', '_error']
+            for field in metadata_fields:
+                result.pop(field, None)
+        else:
+            # Legacy single format extraction
+            text = extract_text_from_file(filename=file.filename, data=content)
+            used_method = ""
+            result = None
 
-        used_method = ""
-        result = None
+            # 1) Template
+            if method in ["template", "auto"]:
+                tpl_res = extract_fields_template(text)
+                if tpl_res:
+                    result = tpl_res
+                    used_method = "template"
 
-        # 1) Template
-        if method in ["template", "auto"]:
-            tpl_res = extract_fields_template(text)
-            if tpl_res:
-                result = tpl_res
-                used_method = "template"
+            # 2) LLM
+            if result is None and (method == "llm" or (method == "auto" and llm_available())):
+                try:
+                    result = extract_fields_llm(text)
+                    used_method = "llm"
+                except Exception:
+                    result = None
 
-        # 2) LLM
-        if result is None and (method == "llm" or (method == "auto" and llm_available())):
-            try:
-                result = extract_fields_llm(text)
-                used_method = "llm"
-            except Exception:
-                result = None
-
-        # 3) Heuristic fallback
-        if result is None:
-            result = extract_fields_heuristic(text)
-            used_method = "heuristic" if method != "llm" else "heuristic (fallback)"
+            # 3) Heuristic fallback
+            if result is None:
+                result = extract_fields_heuristic(text)
+                used_method = "heuristic" if method != "llm" else "heuristic (fallback)"
 
         # Postprocess: compute any missing related amounts
         if isinstance(result, dict):
@@ -73,7 +110,7 @@ async def extract(file: UploadFile = File(...), method: Optional[str] = Query("a
 
         validations = validate_extraction(result)
         return ExtractResponse(data=result, method=used_method, validations=validations)
-    except Exception:
+    except Exception as e:
         # Never fail hard; always return a safe payload so the frontend can proceed
         return ExtractResponse(data={}, method="error", validations={})
 
