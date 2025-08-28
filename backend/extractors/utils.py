@@ -32,7 +32,8 @@ def parse_amount(s):
     s = str(s)
     if re.fullmatch(r"\d{7,}", s.strip()):
         return None
-    s = s.replace("\u00A0", " ")
+    # Normalize spaces: regular space, non‑breaking space, narrow no‑break space
+    s = s.replace("\u00A0", " ").replace("\u202F", " ")
     s = re.sub(r"(Kč|CZK|EUR|€|USD|\$|GBP|£|PLN|zł|HUF|Ft|CHF|SEK|NOK|DKK|JPY|¥|CNY|AUD|CAD)", "", s, flags=re.I)
     s = s.replace(" ", "").replace(",", ".")
     m = re.search(r"-?\d+(?:\.\d{1,2})", s)
