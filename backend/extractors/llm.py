@@ -40,6 +40,9 @@ Pravidla:
 - Částky mohou být ve formátu "44 413,00" nebo "44413.00" - normalizuj na číslo.
 - IČO je 8místné číslo, DIČ začíná "CZ" + 8-10 číslic.
 - Variabilní symbol je obvykle číslo nebo text do 12 znaků.
+- Platební metody: "peněžní převod", "bankovní převod", "hotovost", "karta" - použij přesný text z faktury.
+- Částky bez DPH a s DPH musí sedět s celkovou částkou - zkontroluj matematicky.
+- Adresy obsahují: ulice, číslo, PSČ, město, stát - zachovej kompletní formát.
 
 TEXT:
 -----
