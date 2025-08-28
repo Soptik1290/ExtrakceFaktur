@@ -1,1 +1,0 @@
-Put sample invoices here, or run generator from previous package.
