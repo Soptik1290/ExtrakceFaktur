@@ -3,7 +3,10 @@ import io
 import pdfplumber
 from PIL import Image
 import pytesseract
-from pdf2image import convert_from_bytes
+try:
+    from pdf2image import convert_from_bytes as _convert_from_bytes
+except Exception:  # pdf2image or poppler may be unavailable in some envs
+    _convert_from_bytes = None
 
 def _pdf_text(data: bytes) -> str:
     """
@@ -30,7 +33,10 @@ def _pdf_text(data: bytes) -> str:
 
     # Fallback: OCR each page rendered as image
     try:
-        pages = convert_from_bytes(data, fmt="png")
+        if _convert_from_bytes is None:
+            # Fallback not available on this platform; return whatever text we had
+            return "\n".join([t for t in text_parts if t])
+        pages = _convert_from_bytes(data, fmt="png")
         ocr_texts = []
         for img in pages:
             try:
