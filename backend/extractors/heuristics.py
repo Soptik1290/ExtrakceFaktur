@@ -127,16 +127,19 @@ def extract_fields_heuristic(text: str) -> dict:
         r"celkem k \w*uhra", r"celkem k uhrade", r"celkem k úhradě",
         r"celkem", r"total", r"amount due", r"grand total", 
         r"k úhradě", r"k uhrade", r"celková částka", r"celkova castka",
-        r"celková castka", r"celkova částka"
+        r"celková castka", r"celkova částka", r"celkem k úhradě", r"celkem k uhrade",
+        r"celkem k úhradě", r"celkem k uhrade", r"celkem k úhradě", r"celkem k uhrade"
     ], AMOUNT_PAT_STRICT, 3)
     
     bez_dph = _find_label_value(lines, [
         r"bez dph", r"základ daně", r"zaklad dane", r"subtotal", 
-        r"základ", r"zaklad", r"základ daně", r"zaklad dane"
+        r"základ", r"zaklad", r"základ daně", r"zaklad dane", r"základ daně", r"zaklad dane",
+        r"základ daně", r"zaklad dane", r"základ daně", r"zaklad dane"
     ], AMOUNT_PAT_STRICT, 3)
     
     dph = _find_label_value(lines, [
-        r"\bdph\b", r"\bvat\b", r"daň", r"dan", r"dph", r"vat"
+        r"\bdph\b", r"\bvat\b", r"daň", r"dan", r"dph", r"vat", r"daň z přidané hodnoty", r"dan z pridane hodnoty",
+        r"daň z přidané hodnoty", r"dan z pridane hodnoty", r"daň z přidané hodnoty", r"dan z pridane hodnoty"
     ], AMOUNT_PAT_STRICT, 3)
 
     if not (castka_s and bez_dph and dph):
@@ -188,13 +191,13 @@ def extract_fields_heuristic(text: str) -> dict:
 
     # --- Payment info ---
     platba = _find_label_value(lines,
-        [r"zp[uů]sob [uú]hrady", r"zp[uů]sob platby", r"payment method", r"payment", r"zpusob uhrady", r"zpusob platby", r"zpusob úhrady", r"zpusob úhrady"],
+        [r"zp[uů]sob [uú]hrady", r"zp[uů]sob platby", r"payment method", r"payment", r"zpusob uhrady", r"zpusob platby", r"zpusob úhrady", r"zpusob úhrady", r"způsob úhrady", r"způsob platby", r"způsob uhrady", r"způsob platby"],
         r"[:\s]*([A-Za-zÁČĎÉĚÍŇÓŘŠŤÚŮÝŽa-záčďéěíňóřšťúůýž /+\-]+)", 2)
     banka = _find_label_value(lines,
-        [r"n[aá]zev banky", r"banka", r"bank name", r"nazev banky", r"název banky"],
-        r"[:\s]*([A-Za-z0-9 .,'\-_/]+)", 2)
+        [r"n[aá]zev banky", r"banka", r"bank name", r"nazev banky", r"název banky", r"název banky", r"nazev banky", r"banka příjemce", r"banka prijemce"],
+        r"[:\s]*([A-Za-zÁČĎÉĚÍŇÓŘŠŤÚŮÝŽa-záčďéěíňóřšťúůýž0-9 .,'\-_/]+)", 2)
     ucet = _find_label_value(lines,
-        [r"\b(?:č[iy]slo\s*[\w]*\s*ú[čc]tu|cislo uctu|account number|iban)\b", r"cislo účtu", r"cislo uctu", r"číslo účtu", r"číslo uctu"],
+        [r"\b(?:č[iy]slo\s*[\w]*\s*ú[čc]tu|cislo uctu|account number|iban)\b", r"cislo účtu", r"cislo uctu", r"číslo účtu", r"číslo uctu", r"čísla účtu", r"cisla uctu", r"čísla účtu", r"cisla uctu"],
         r"[:\s]*([0-9\- ]{1,20}/[0-9]{3,6}|[A-Z]{2}[0-9A-Z ]{12,34})", 3)
 
     supplier = {"nazev": None, "ico": None, "dic": None, "adresa": None}
