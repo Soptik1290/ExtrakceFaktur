@@ -1,0 +1,31 @@
+{
+  "name": "Pražská energetika, a.s. (PRE)",
+  "required_keywords": [
+    "Pražská energetika",
+    "IČO 60193913"
+  ],
+  "optional_keywords": [
+    "Faktura",
+    "Daňový doklad",
+    "VS",
+    "Variabilní symbol",
+    "DUZP"
+  ],
+  "fields": {
+    "variabilni_symbol": "(?:VS|Variabilní\\s*symbol)[:\\s]+(\\d{6,12})",
+    "datum_vystaveni": "(?:Datum\\s*vystavení|Vystaveno)[:\\s]+([0-9.\\-/ ]{8,})",
+    "datum_splatnosti": "Splatnost[:\\s]+([0-9.\\-/ ]{8,})",
+    "duzp": "(?:DUZP|Datum uskutečnění zdanitelného plnění)[:\\s]+([0-9.\\-/ ]{8,})",
+    "castka_bez_dph": "(?:Základ daně|Bez DPH)[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)?",
+    "dph": "DPH[^:]*[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)?",
+    "castka_s_dph": "(?:Celkem k úhradě|Celkem)[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)?",
+    "dodavatel_dic": "(?:DIČ|VAT)[:\\s]+(CZ\\d{8,10})",
+    "dodavatel_adresa": "Pražská energetika.*?\\n(.*)"
+  },
+  "supplier_defaults": {
+    "nazev": "Pražská energetika, a.s.",
+    "ico": "60193913",
+    "dic": "CZ60193913",
+    "adresa": null
+  }
+}
