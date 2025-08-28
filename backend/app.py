@@ -59,17 +59,11 @@ async def extract(file: UploadFile = File(...), method: Optional[str] = Query("a
                 used_method = "llm"
             except Exception:
                 result = None
-                if method == "llm":
-                    # If LLM was explicitly requested but failed, don't set method to "llm"
-                    used_method = "llm (failed)"
 
         # 3) Heuristic fallback
         if result is None:
             result = extract_fields_heuristic(text)
-            if method == "llm" and used_method == "llm (failed)":
-                used_method = "heuristic (fallback)"
-            elif not used_method:
-                used_method = "heuristic"
+            used_method = "heuristic" if method != "llm" else "heuristic (fallback)"
 
         # Postprocess: compute any missing related amounts
         if isinstance(result, dict):

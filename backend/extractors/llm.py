@@ -67,37 +67,6 @@ def extract_fields_llm(text: str) -> dict:
     for k in ["castka_bez_dph","dph","castka_s_dph"]:
         data[k] = _num(data.get(k))
 
-    # Heuristic correction: prefer amount near labels like "K úhradě/Celkem/Total"
-    try:
-        # Diacritic-aware and flexible Czech patterns
-        LABELS = [
-            r"celkem\s+k\s+\w*\s*[uú]hrad[ěe]",
-            r"k\s+\w*\s*[uú]hrad[ěe]",
-            r"celkem",
-            r"amount\s+due",
-            r"grand\s+total",
-            r"\btotal\b",
-        ]
-        AMT = r"(\d{1,3}(?:[ \u00A0\u202F]\d{3})*(?:[.,]\d{2})|\d+[.,]\d{2})"
-        joined = text or ""
-        import re as _re
-        best = None
-        for lab in LABELS:
-            m = _re.search(lab + r".{0,80}" + AMT, joined, _re.I)
-            if not m:
-                m = _re.search(AMT + r".{0,80}" + lab, joined, _re.I)
-            if m:
-                cand = parse_amount(m.group(1))
-                if cand is not None and (best is None or cand > best):
-                    best = cand
-        if best is not None:
-            cur = data.get("castka_s_dph")
-            # If LLM under-shot (e.g., dropped thousands), trust the labeled amount
-            if cur is None or best >= max(cur * 1.5, cur + 100):
-                data["castka_s_dph"] = best
-    except Exception:
-        pass
-
     # Ensure dodavatel is a dict with expected keys even if LLM returns a string/list/null
     supplier = data.get("dodavatel")
     if not isinstance(supplier, dict):

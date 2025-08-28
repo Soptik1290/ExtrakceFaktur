@@ -1,212 +1,136 @@
-# -*- coding: utf-8 -*-
-"""
-Heuristic extractors for monetary amounts from noisy OCR/text layers of invoices.
-This module is template-free and focuses on robust pattern matching + normalization.
-"""
-from __future__ import annotations
 
 import re
-from typing import Iterable, List, Optional, Tuple
+from .utils import normalize_date, parse_amount, first, pick_nearby, detect_currency
 
-# NOTE:
-#  - We tolerate various spaces (regular, NBSP, thin spaces), and even multiple spaces
-#    between fragmented thousand groups coming from PDF text extraction or OCR.
-#  - We also accept groups of 1–3 digits after the first group to handle "broken"
-#    thousands like '4  4 413,00' where kerning created a split.
-#
-# Examples matched:
-#   "44 413,00 Kč", "4  4 413,00 Kč", "44.413,00", "44,413.00", "44 413 Kč", "44113.00"
-#
-# The decimal part is optional in the first branch because invoices sometimes show
-# integers with currency (e.g., "44 413 Kč"). A second branch catches plain 123,45/123.45.
-AMOUNT_PAT_STRICT = (
-    r"\b\d{1,3}(?:[\s\u00A0\u2000-\u200B\u202F]+?\d{1,3})+(?:[,.]\d{2})?\b"
-    r"|\b\d+[,.]\d{2}\b"
-)
+DATE_PAT = r"(?:\b\d{1,2}[.\-/ ]\d{1,2}[.\-/ ]\d{2,4}\b|\b\d{4}-\d{1,2}-\d{1,2}\b)"
+AMOUNT_PAT_STRICT = r"\b\d{1,3}(?:[ \u00A0]\d{3})*(?:[,.]\d{2})\b|\b\d+[,.]\d{2}\b"
+CURRENCY_TOKEN = r"(?:CZK|Kč|EUR|€|USD|\$|GBP|£|PLN|zł|HUF|Ft|CHF|SEK|NOK|DKK|JPY|¥|CNY|AUD|CAD)"
 
-# Common keywords signaling the final amount ("total due" etc.)
-DEFAULT_TOTAL_KEYWORDS = [
-    "celkem k úhradě",
-    "k úhradě",
-    "celkem",
-    "total due",
-    "amount due",
-    "grand total",
-    "amount payable",
-    "balance due",
-    "sum to pay",
-]
+def _find_label_value(lines, label_keywords, value_regex, max_dist=2):
+    label_re = re.compile("|".join(label_keywords), re.I)
+    val_re = re.compile(value_regex)
+    candidates = []
+    for i, line in enumerate(lines):
+        if label_re.search(line):
+            window = "\n".join(lines[max(0, i - max_dist): i + max_dist + 1])
+            for m in val_re.finditer(window):
+                candidates.append(m.group(1) if m.groups() else m.group(0))
+    return first(candidates)
 
-_CURRENCY_RE = re.compile(r"(Kč|CZK|EUR|USD|GBP|PLN|HUF|CHF|SEK|NOK|DKK|JPY|CNY|AUD|CAD|[€$£¥₤₺₽₨₿])", re.IGNORECASE)
-_SPACE_NORM_RE = re.compile(r"(?:\s|[\u00A0\u2000-\u200B\u202F])+", re.UNICODE)
+def _find_any(regex, text):
+    m = re.search(regex, text, re.I | re.M)
+    return m.group(1) if (m and m.groups()) else (m.group(0) if m else None)
 
-def _normalize_text(s: str) -> str:
-    """Normalize text for scanning: collapse exotic spaces, lower for keyword search."""
-    s = _SPACE_NORM_RE.sub(" ", s)
-    return s
+def _clean_lines(text: str):
+    return [re.sub(r"\s+", " ", ln).strip() for ln in text.splitlines() if ln.strip()]
 
-def iter_amount_spans(text: str, pattern: str = AMOUNT_PAT_STRICT) -> Iterable[Tuple[int, int, str]]:
-    """
-    Yield (start, end, matched_text) for all amount-like tokens in the given text.
-    """
-    for m in re.finditer(pattern, text, flags=re.UNICODE):
-        yield m.start(), m.end(), m.group(0)
+def _detect_vs(text: str, lines):
+    vs = _find_label_value(lines, [r"\bvariab\w* symbol\b", r"\bVS\b", r"variable symbol"], r"\b(\d{6,12})\b", 3)
+    if vs:
+        return re.sub(r"\D", "", vs)
+    vs = _find_any(r"\bVS[:\s]+(\d{6,12})\b", "\n".join(lines))
+    if vs:
+        return vs
+    candidates = []
+    j = "\n".join(lines)
+    for m in re.finditer(r"\b(\d{8,10})\b(?!\s*/)", j):
+        left = j[max(0, m.start()-20):m.start()].lower()
+        if ("ucet" in left or "účet" in left or "account" in left):
+            continue
+        candidates.append(m.group(1))
+    return first(candidates)
 
-def extract_amount_candidates(text: str, pattern: str = AMOUNT_PAT_STRICT) -> List[str]:
-    """Return all raw amount strings found in text."""
-    return [m for _, _, m in iter_amount_spans(text, pattern)]
+def _amounts_from_text(text: str):
+    raw = re.findall(AMOUNT_PAT_STRICT, text)
+    parsed = []
+    for a in raw:
+        val = parse_amount(a)
+        if val is None:
+            continue
+        if val > 1e7:
+            continue
+        parsed.append(val)
+    return parsed
 
-def window_candidates_around_keywords(text: str,
-                                      keywords: Iterable[str] = DEFAULT_TOTAL_KEYWORDS,
-                                      window_chars: int = 220) -> List[str]:
-    """
-    Collect amount candidates that appear within ±window_chars around any of the keywords.
-    """
-    if not text:
-        return []
-    normalized = _normalize_text(text)
-    raw = text  # keep original indices
-
-    # Build simple lower-cased search for keywords to find windows
-    low = normalized.lower()
-    idxs: List[Tuple[int, int]] = []
-    for kw in keywords:
-        pos = 0
-        kw_low = kw.lower()
-        while True:
-            i = low.find(kw_low, pos)
-            if i == -1:
-                break
-            start = max(0, i - window_chars)
-            end = min(len(raw), i + len(kw_low) + window_chars)
-            idxs.append((start, end))
-            pos = i + len(kw_low)
-
-    # Deduplicate and merge overlapping windows
-    idxs.sort()
-    merged: List[Tuple[int, int]] = []
-    for s, e in idxs:
-        if not merged or s > merged[-1][1]:
-            merged.append((s, e))
-        else:
-            merged[-1] = (merged[-1][0], max(merged[-1][1], e))
-
-    # Collect candidates inside windows
-    cands: List[str] = []
-    for s, e in merged:
-        segment = raw[s:e]
-        cands.extend(extract_amount_candidates(segment))
-
-    return cands
-
-def choose_best_total_candidate(candidates: List[str]) -> Optional[str]:
-    """
-    A simple heuristic to choose the 'best' total:
-      - prefer candidates with currency symbol/code present in original snippet
-      - otherwise prefer the numerically largest value (common for TOTAL vs line items)
-    """
-    from .utils import parse_amount  # local import to avoid circular deps
-
-    if not candidates:
-        return None
-
-    # Score by (has_currency, numeric_value)
-    best = None
-    best_score = (-1, float("-inf"))  # type: ignore
-
-    for c in candidates:
-        has_curr = 1 if _CURRENCY_RE.search(c) else 0
-        val = parse_amount(c)
-        val = val if val is not None else float("-inf")
-        score = (has_curr, float(val))
-        if score > best_score:
-            best_score = score
-            best = c
-
-    return best
-
-def extract_total_amount(text: str,
-                         keywords: Iterable[str] = DEFAULT_TOTAL_KEYWORDS,
-                         fallback_pick_max: bool = True) -> Optional[float]:
-    """
-    High-level helper:
-      1) Look near likely 'total' keywords and pick best candidate.
-      2) If nothing near keywords, optionally fall back to the maximum amount in the whole text.
-    Returns a float in standard dotted-decimal (e.g., 44413.00) or None.
-    """
-    from .utils import parse_amount  # local import to avoid circular deps
-
-    # First pass: around keywords
-    cands = window_candidates_around_keywords(text, keywords=keywords, window_chars=220)
-    best = choose_best_total_candidate(cands)
-    if best is not None:
-        return parse_amount(best)
-
-    # Fallback: pick the largest amount in the entire document
-    if fallback_pick_max:
-        all_cands = extract_amount_candidates(text)
-        # parse & choose max
-        parsed = [(c, parse_amount(c)) for c in all_cands]
-        parsed = [p for p in parsed if p[1] is not None]
-        if parsed:
-            return max(parsed, key=lambda x: x[1])[1]
-
+def _currency_near_amount(lines):
+    joined = "\n".join(lines)
+    for lab in [r"amount due", r"grand total", r"\btotal\b", r"celkem", r"k úhradě", r"subtotal", r"bez dph", r"dph"]:
+        m = re.search(lab + r".{0,40}" + CURRENCY_TOKEN, joined, re.I)
+        if m:
+            cur = re.search(CURRENCY_TOKEN, m.group(0), re.I)
+            if cur:
+                tok = cur.group(0).upper()
+                sym_map = {"€": "EUR", "$": "USD", "£": "GBP", "KČ": "CZK", "¥": "JPY"}
+                return sym_map.get(tok, tok.replace("KČ", "CZK"))
     return None
 
 def extract_fields_heuristic(text: str) -> dict:
-    """
-    Extract invoice fields using heuristic pattern matching.
-    This is a fallback method when templates and LLM extraction fail.
-    """
-    if not text:
-        return {}
-    
-    result = {}
-    
-    # Extract total amount
-    total = extract_total_amount(text)
-    if total is not None:
-        result["total_amount"] = total
-    
-    # Extract currency if present
-    currency_match = _CURRENCY_RE.search(text)
-    if currency_match:
-        result["currency"] = currency_match.group(1)
-    
-    # Try to find invoice number pattern
-    invoice_number_pattern = r"\b(?:faktura|invoice|č\.|číslo|no\.|number)[\s:]*([A-Z0-9\-_/]+)\b"
-    invoice_match = re.search(invoice_number_pattern, text, re.IGNORECASE)
-    if invoice_match:
-        result["invoice_number"] = invoice_match.group(1)
-    
-    # Try to find date patterns
-    date_patterns = [
-        r"\b(\d{1,2}[./]\d{1,2}[./]\d{2,4})\b",  # DD/MM/YYYY or DD.MM.YYYY
-        r"\b(\d{4}[./-]\d{1,2}[./-]\d{1,2})\b",  # YYYY/MM/DD
-    ]
-    
-    for pattern in date_patterns:
-        date_match = re.search(pattern, text)
-        if date_match:
-            result["invoice_date"] = date_match.group(1)
-            break
-    
-    # Try to find supplier name (simple heuristic: look for common business keywords)
-    supplier_keywords = ["dodavatel", "supplier", "prodejce", "seller", "firma", "company"]
-    lines = text.split('\n')
-    for line in lines:
-        line_lower = line.lower()
-        if any(keyword in line_lower for keyword in supplier_keywords):
-            # Extract the text after the keyword
-            for keyword in supplier_keywords:
-                if keyword in line_lower:
-                    parts = line.split(keyword, 1)
-                    if len(parts) > 1:
-                        supplier = parts[1].strip(' :.,;')
-                        if supplier and len(supplier) > 2:
-                            result["supplier_name"] = supplier
-                            break
-            if "supplier_name" in result:
-                break
-    
+    lines = _clean_lines(text)
+    joined = "\n".join(lines)
+
+    vs = _detect_vs(joined, lines)
+
+    vyst = _find_label_value(lines, [r"datum vyst", r"vystaven", r"issue"], DATE_PAT, 3) \
+        or pick_nearby(joined, ["vyst", "issue"], DATE_PAT)
+    splat = _find_label_value(lines, [r"splatnost", r"due date", r"payment due"], DATE_PAT, 3) \
+        or pick_nearby(joined, ["splatnost", "due"], DATE_PAT)
+    duzp = _find_label_value(lines, [r"duzp", r"tax point", r"date of taxable"], DATE_PAT, 3) \
+        or pick_nearby(joined, ["duzp", "tax point"], DATE_PAT)
+
+    vyst = normalize_date(vyst); splat = normalize_date(splat); duzp = normalize_date(duzp)
+
+    castka_s = _find_label_value(lines, [r"celkem k \w*uhra", r"celkem", r"total", r"amount due", r"grand total"], AMOUNT_PAT_STRICT, 3)
+    bez_dph = _find_label_value(lines, [r"bez dph", r"základ daně", r"zaklad dane", r"subtotal"], AMOUNT_PAT_STRICT, 3)
+    dph = _find_label_value(lines, [r"\bdph\b", r"\bvat\b"], AMOUNT_PAT_STRICT, 3)
+
+    if not (castka_s and bez_dph and dph):
+        nums = _amounts_from_text(joined)
+        nums = sorted(nums)
+        if nums:
+            castka_s = castka_s or f"{nums[-1]:.2f}"
+        if bez_dph and not dph and castka_s:
+            try:
+                b = parse_amount(bez_dph); s = parse_amount(castka_s)
+                if b is not None and s is not None and s >= b:
+                    dph = f"{(s - b):.2f}"
+            except Exception:
+                pass
+        if dph and not bez_dph and castka_s:
+            try:
+                d = parse_amount(dph); s = parse_amount(castka_s)
+                if d is not None and s is not None and s >= d:
+                    bez_dph = f"{(s - d):.2f}"
+            except Exception:
+                pass
+
+    cur = _currency_near_amount(lines) or detect_currency(joined)
+
+    # --- Payment info ---
+    platba = _find_label_value(lines,
+        [r"zp[uů]sob [uú]hrady", r"zp[uů]sob platby", r"payment method", r"payment", r"zpusob uhrady"],
+        r"[:\s]*([A-Za-zÁČĎÉĚÍŇÓŘŠŤÚŮÝŽa-záčďéěíňóřšťúůýž /+\-]+)", 2)
+    banka = _find_label_value(lines,
+        [r"n[aá]zev banky", r"banka", r"bank name"],
+        r"[:\s]*([A-Za-z0-9 .,'\-_/]+)", 2)
+    ucet = _find_label_value(lines,
+        [r"\b(?:č[iy]slo\s*[\w]*\s*ú[čc]tu|cislo uctu|account number|iban)\b"],
+        r"[:\s]*([0-9\- ]{1,20}/[0-9]{3,6}|[A-Z]{2}[0-9A-Z ]{12,34})", 3)
+
+    supplier = {"nazev": None, "ico": None, "dic": None, "adresa": None}
+
+    result = {
+        "variabilni_symbol": vs,
+        "datum_vystaveni": vyst,
+        "datum_splatnosti": splat,
+        "duzp": duzp,
+        "castka_bez_dph": parse_amount(bez_dph) if bez_dph else None,
+        "dph": parse_amount(dph) if dph else None,
+        "castka_s_dph": parse_amount(castka_s) if castka_s else None,
+        "dodavatel": supplier,
+        "mena": cur,
+        "platba_zpusob": platba.strip() if isinstance(platba, str) else platba,
+        "banka_prijemce": banka.strip() if isinstance(banka, str) else banka,
+        "ucet_prijemce": ucet.strip() if isinstance(ucet, str) else ucet,
+        "confidence": 0.62
+    }
     return result

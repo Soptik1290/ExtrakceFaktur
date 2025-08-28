@@ -3,86 +3,14 @@ import io
 import pdfplumber
 from PIL import Image
 import pytesseract
-try:
-    from pdf2image import convert_from_bytes as _convert_from_bytes
-except Exception:  # pdf2image or poppler may be unavailable in some envs
-    _convert_from_bytes = None
 
 def _pdf_text(data: bytes) -> str:
-    """
-    Try text extraction via pdfplumber first. If pages yield little/empty text
-    (typical for scanned PDFs), fall back to OCR by rasterizing pages.
-    """
     text_parts = []
-    ocr_needed = False
-    try:
-        with pdfplumber.open(io.BytesIO(data)) as pdf:
-            for page in pdf.pages:
-                t = page.extract_text(x_tolerance=1, y_tolerance=1) or ""
-                # Heuristic: many scanned PDFs return very short/empty strings
-                if len((t or "").strip()) < 10:
-                    ocr_needed = True
-                text_parts.append(t)
-    except Exception:
-        # If parsing fails entirely, force OCR path
-        ocr_needed = True
-
-    # If we collected some meaningful text and OCR is not required, return it
-    if text_parts and not ocr_needed and any(len((t or "").strip()) > 10 for t in text_parts):
-        return "\n".join(text_parts)
-
-    # Fallback: OCR each page rendered as image
-    try:
-        if _convert_from_bytes is None:
-            # Fallback not available on this platform; return whatever text we had
-            return "\n".join([t for t in text_parts if t])
-        pages = _convert_from_bytes(data, fmt="png")
-        ocr_texts = []
-        for img in pages:
-            try:
-                ocr_texts.append(_image_text_from_pil(img))
-            except Exception:
-                continue
-        return "\n".join([t for t in ocr_texts if t])
-    except Exception:
-        return "\n".join([t for t in text_parts if t])
-
-def _tesseract_config():
-    lang = "ces+eng"  # Czech + English for best invoice coverage
-    # Preserve diacritics and improve segmentation for documents
-    config = "--oem 3 --psm 6"
-    return lang, config
-
-def _image_text_from_pil(img) -> str:
-    # Safety for huge PNGs that can be slow or trigger decompression warnings
-    try:
-        # Set maximum image size to prevent decompression bomb attacks
-        # This attribute might not exist in all Pillow versions
-        if hasattr(Image, 'MAX_IMAGE_PIXELS'):
-            Image.MAX_IMAGE_PIXELS = 50_000_000
-    except Exception:
-        pass
-
-    # Normalize mode and size
-    if img.mode not in ("L", "RGB"):
-        img = img.convert("RGB")
-    # Downscale if extremely large
-    max_side = max(img.size)
-    if max_side > 2400:
-        scale = 2400 / float(max_side)
-        new_size = (int(img.size[0] * scale), int(img.size[1] * scale))
-        img = img.resize(new_size)
-    # Grayscale often improves OCR speed and robustness
-    if img.mode != "L":
-        img = img.convert("L")
-
-    lang, config = _tesseract_config()
-    try:
-        # Prevent infinite waiting on problematic images
-        return pytesseract.image_to_string(img, lang=lang, config=config, timeout=15)
-    except Exception:
-        # If Tesseract times out or fails, return empty string so pipeline continues
-        return ""
+    with pdfplumber.open(io.BytesIO(data)) as pdf:
+        for page in pdf.pages:
+            t = page.extract_text(x_tolerance=1, y_tolerance=1) or ""
+            text_parts.append(t)
+    return "\n".join(text_parts)
 
 def _image_text(data: bytes) -> str:
     try:
@@ -90,7 +18,7 @@ def _image_text(data: bytes) -> str:
     except Exception:
         return ""
     try:
-        return _image_text_from_pil(img)
+        return pytesseract.image_to_string(img)
     except Exception:
         return ""
 
@@ -100,15 +28,7 @@ def extract_text_from_file(filename: str, data: bytes) -> str:
         return _pdf_text(data)
     if any(name.endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".tiff", ".bmp"]):
         return _image_text(data)
-    # For other file types, try to decode as text, but don't fail on binary files
     try:
-        # Check if data looks like text (contains mostly printable ASCII/UTF-8)
-        text_data = data.decode("utf-8", errors="ignore")
-        # If more than 80% of characters are printable, treat as text
-        printable_chars = sum(1 for c in text_data if c.isprintable() or c.isspace())
-        if printable_chars / len(text_data) > 0.8:
-            return text_data
-        else:
-            return ""
+        return data.decode("utf-8", errors="ignore")
     except Exception:
         return ""
