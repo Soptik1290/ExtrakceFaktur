@@ -1,6 +1,6 @@
 
 import os, json, re
-from .utils import normalize_date, parse_amount
+from .utils import normalize_date, parse_amount, fix_czech_chars
 try:
     from openai import OpenAI
 except Exception:
@@ -35,6 +35,11 @@ Pravidla:
 - Částky vracej jako čísla (pokud lze), jinak string.
 - Číslo účtu může být ve formátu '123-123456789/0100', '2171532/0800', IBAN nebo BIC – vrať jak je na faktuře.
 - Pokud něco chybí, dej null a adekvátně sniž confidence.
+- ZACHOVEJ českou diakritiku (ěščřžýáíéůúňďť) v názvech a adresách.
+- Pro české faktury: měna "Kč" = "CZK".
+- Částky mohou být ve formátu "44 413,00" nebo "44413.00" - normalizuj na číslo.
+- IČO je 8místné číslo, DIČ začíná "CZ" + 8-10 číslic.
+- Variabilní symbol je obvykle číslo nebo text do 12 znaků.
 
 TEXT:
 -----
@@ -79,10 +84,10 @@ def extract_fields_llm(text: str) -> dict:
             if isinstance(val, (list, dict)):
                 supplier[key] = json.dumps(val, ensure_ascii=False)
     data["dodavatel"] = {
-        "nazev": supplier.get("nazev"),
+        "nazev": fix_czech_chars(supplier.get("nazev")),
         "ico": supplier.get("ico"),
         "dic": supplier.get("dic"),
-        "adresa": supplier.get("adresa"),
+        "adresa": fix_czech_chars(supplier.get("adresa")),
     }
     
     # Normalize currency - convert "Kč" to "CZK"
@@ -97,6 +102,11 @@ def extract_fields_llm(text: str) -> dict:
                 parsed = parse_amount(data[k])
                 if parsed is not None:
                     data[k] = parsed
+    
+    # Fix Czech characters in text fields
+    for k in ["platba_zpusob", "banka_prijemce"]:
+        if data.get(k):
+            data[k] = fix_czech_chars(data[k])
     
     for k in ["mena","platba_zpusob","banka_prijemce","ucet_prijemce"]:
         data.setdefault(k, None)
