@@ -55,10 +55,6 @@ def parse_amount(s):
         # No decimal part, just remove spaces
         s = s.replace(" ", "")
     
-    # Additional check for Czech number patterns like "44 413" (without decimal)
-    if re.match(r"^\d{1,3}(?: \d{3})+$", s):
-        s = s.replace(" ", "")
-    
     # Handle cases like "44 413" where the space is clearly a thousands separator
     if re.match(r"^\d{1,3} \d{3}$", s):
         s = s.replace(" ", "")
@@ -66,6 +62,10 @@ def parse_amount(s):
     # Handle cases like "44 413,00" where the space is clearly a thousands separator
     if re.match(r"^\d{1,3} \d{3},\d{2}$", s):
         s = s.replace(" ", "").replace(",", ".")
+    
+    # Additional check for Czech number patterns like "44 413" (without decimal)
+    if re.match(r"^\d{1,3}(?: \d{3})+$", s):
+        s = s.replace(" ", "")
     
     m = re.search(r"-?\d+(?:\.\d{1,2})", s)
     if not m:
