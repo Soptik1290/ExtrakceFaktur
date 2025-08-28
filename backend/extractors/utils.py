@@ -34,9 +34,48 @@ def parse_amount(s):
         return None
     s = s.replace("\u00A0", " ")
     s = re.sub(r"(Kč|CZK|EUR|€|USD|\$|GBP|£|PLN|zł|HUF|Ft|CHF|SEK|NOK|DKK|JPY|¥|CNY|AUD|CAD)", "", s, flags=re.I)
-    s = s.replace(" ", "").replace(",", ".")
+    
+    # Handle Czech number format: "44 413,00" -> "44413.00"
+    # First, normalize decimal separator
+    s = s.replace(",", ".")
+    
+    # Then remove spaces that are thousands separators (but keep decimal part)
+    if "." in s:
+        parts = s.split(".")
+        if len(parts) == 2:  # Has decimal part
+            integer_part = parts[0].replace(" ", "")
+            decimal_part = parts[1]
+            s = f"{integer_part}.{decimal_part}"
+        else:
+            # Multiple dots, treat as thousands separators except the last one
+            integer_part = "".join(parts[:-1]).replace(" ", "")
+            decimal_part = parts[-1]
+            s = f"{integer_part}.{decimal_part}"
+    else:
+        # No decimal part, just remove spaces
+        s = s.replace(" ", "")
+    
+    # Additional check for Czech number patterns like "44 413" (without decimal)
+    if re.match(r"^\d{1,3}(?: \d{3})+$", s):
+        s = s.replace(" ", "")
+    
+    # Handle cases like "44 413" where the space is clearly a thousands separator
+    if re.match(r"^\d{1,3} \d{3}$", s):
+        s = s.replace(" ", "")
+    
+    # Handle cases like "44 413,00" where the space is clearly a thousands separator
+    if re.match(r"^\d{1,3} \d{3},\d{2}$", s):
+        s = s.replace(" ", "").replace(",", ".")
+    
     m = re.search(r"-?\d+(?:\.\d{1,2})", s)
     if not m:
+        # Try to find just the integer part if no decimal found
+        m = re.search(r"-?\d+", s)
+        if m:
+            try:
+                return float(m.group(0))
+            except Exception:
+                pass
         return None
     try:
         return float(m.group(0))
