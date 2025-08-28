@@ -160,6 +160,10 @@ def fix_czech_chars(text: str) -> str:
         "prevodem": "převodem",
         "Prevodem": "Převodem",
         "PREVODEM": "PŘEVODEM",
+        "Cekova": "peněžní převod",
+        
+        # Běžné chyby v názvech firem
+        "Ooberate": "s.r.o.",
         
         # Běžné chyby v měnách
         "Kc": "Kč",
@@ -177,5 +181,7 @@ def fix_czech_chars(text: str) -> str:
     result = re.sub(r'\bKomeréni\b', 'Komerční', result)
     result = re.sub(r'\bPizen\b', 'Plzeň', result)
     result = re.sub(r'\bNovak\b', 'Novák', result)
+    result = re.sub(r'\bCekova\b', 'peněžní převod', result)
+    result = re.sub(r'\bOoberate\b', 's.r.o.', result)
     
     return result
