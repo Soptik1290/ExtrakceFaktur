@@ -121,3 +121,61 @@ def pick_nearby(text, keywords, value_regex, window=200):
             if vm:
                 return vm.group(0)
     return None
+
+def fix_czech_chars(text: str) -> str:
+    """
+    Opravuje běžné chyby v českých znacích a diakritice
+    """
+    if not text:
+        return text
+    
+    # Slovník běžných chyb a jejich oprav
+    czech_fixes = {
+        # Běžné chyby v diakritice
+        "Komeréni": "Komerční",
+        "Komeréni banka": "Komerční banka",
+        "Komeréni banka, a.s.": "Komerční banka, a.s.",
+        
+        # Města a místa
+        "Pizen": "Plzeň",
+        "Pizen,": "Plzeň,",
+        "Pizen.": "Plzeň.",
+        
+        # Běžné chyby v názvech
+        "Novak": "Novák",
+        "Novak,": "Novák,",
+        "Novak.": "Novák.",
+        
+        # Opravy pro adresy
+        "Alej Svobody": "Alej Svobody",  # Toto je správně
+        "Dopravní": "Dopravní",  # Toto je správně
+        
+        # Běžné chyby v bankovních názvech
+        "Ceska sporitelna": "Česká spořitelna",
+        "Ceska sporitelna, a.s.": "Česká spořitelna, a.s.",
+        "Ceska narodni banka": "Česká národní banka",
+        "Ceska narodni banka, a.s.": "Česká národní banka, a.s.",
+        
+        # Běžné chyby v platebních metodách
+        "prevodem": "převodem",
+        "Prevodem": "Převodem",
+        "PREVODEM": "PŘEVODEM",
+        
+        # Běžné chyby v měnách
+        "Kc": "Kč",
+        "kc": "kč",
+        "KC": "KČ",
+    }
+    
+    result = text
+    
+    # Aplikuj opravy
+    for wrong, correct in czech_fixes.items():
+        result = result.replace(wrong, correct)
+    
+    # Opravy pomocí regex pro složitější případy
+    result = re.sub(r'\bKomeréni\b', 'Komerční', result)
+    result = re.sub(r'\bPizen\b', 'Plzeň', result)
+    result = re.sub(r'\bNovak\b', 'Novák', result)
+    
+    return result
