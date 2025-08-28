@@ -1,8 +1,0 @@
-
-// Add to your extract() after main rows:
-const payRows = [
-  ['Způsob úhrady', d.platba_zpusob, null],
-  ['Banka příjemce', d.banka_prijemce, null],
-  ['Číslo účtu příjemce', d.ucet_prijemce, null],
-];
-payRows.forEach(([k,v]) => tbody.appendChild(rowWithCopy(k, v)));
