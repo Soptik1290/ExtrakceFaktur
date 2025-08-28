@@ -52,7 +52,7 @@ TEXT:
 
 def extract_fields_llm(text: str) -> dict:
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    model = os.getenv("OPENAI_MODEL", "gpt-5-mini")
     resp = client.chat.completions.create(
         model=model,
         messages=[
@@ -116,3 +116,4 @@ def extract_fields_llm(text: str) -> dict:
     data.setdefault("confidence", 0.75)
     data.setdefault("variabilni_symbol", None)
     return data
+
