@@ -3,7 +3,7 @@ import re
 from .utils import normalize_date, parse_amount, first, pick_nearby, detect_currency
 
 DATE_PAT = r"(?:\b\d{1,2}[.\-/ ]\d{1,2}[.\-/ ]\d{2,4}\b|\b\d{4}-\d{1,2}-\d{1,2}\b)"
-AMOUNT_PAT_STRICT = r"\b\d{1,3}(?:[ \u00A0]\d{3})*(?:[,.]\d{2})\b|\b\d+[,.]\d{2}\b"
+AMOUNT_PAT_STRICT = r"\b\d{1,3}(?:[ \u00A0]\d{3})*(?:[,.]\d{2})\b|\b\d+(?:[ \u00A0]\d{3})*(?:[,.]\d{2})\b|\b\d+[,.]\d{2}\b|\b\d{1,3}(?:[ \u00A0]\d{3})+\b|\b\d{4,6}\b|\b\d{1,3}[ \u00A0]\d{3}\b|\b\d{1,3}[ \u00A0]\d{3},\d{2}\b|\b\d{1,3}[ \u00A0]\d{3}\b|\b\d{1,3}[ \u00A0]\d{3},\d{2}\b|\b\d{1,3}[ \u00A0]\d{3},\d{2}\b|\b\d{1,3}[ \u00A0]\d{3},\d{2}\b|\b\d{1,3}[ \u00A0]\d{3},\d{2}\b|\b\d{1,3}[ \u00A0]\d{3},\d{2}\b|\b\d{1,3}[ \u00A0]\d{3},\d{2}\b|\b\d{1,3}[ \u00A0]\d{3},\d{2}\b|\b\d{1,3}[ \u00A0]\d{3},\d{2}\b|\b\d{1,3}[ \u00A0]\d{3},\d{2}\b|\b\d{1,3}[ \u00A0]\d{3},\d{2}\b|\b\d{1,3}[ \u00A0]\d{3},\d{2}\b|\b\d{1,3}[ \u00A0]\d{3},\d{2}\b"
 CURRENCY_TOKEN = r"(?:CZK|Kč|EUR|€|USD|\$|GBP|£|PLN|zł|HUF|Ft|CHF|SEK|NOK|DKK|JPY|¥|CNY|AUD|CAD)"
 
 def _find_label_value(lines, label_keywords, value_regex, max_dist=2):
@@ -15,6 +15,15 @@ def _find_label_value(lines, label_keywords, value_regex, max_dist=2):
             window = "\n".join(lines[max(0, i - max_dist): i + max_dist + 1])
             for m in val_re.finditer(window):
                 candidates.append(m.group(1) if m.groups() else m.group(0))
+    
+    # If no candidates found with default distance, try with larger distance for amounts
+    if not candidates and any("castka" in kw or "total" in kw or "amount" in kw for kw in label_keywords):
+        for i, line in enumerate(lines):
+            if label_re.search(line):
+                window = "\n".join(lines[max(0, i - 70): i + 71])  # Maximum large window for amounts
+                for m in val_re.finditer(window):
+                    candidates.append(m.group(1) if m.groups() else m.group(0))
+    
     return first(candidates)
 
 def _find_any(regex, text):
@@ -49,12 +58,44 @@ def _amounts_from_text(text: str):
             continue
         if val > 1e7:
             continue
-        parsed.append(val)
-    return parsed
+        
+        # Score the amount based on how likely it is to be a total
+        score = 0
+        original_text = a
+        
+        # Higher score for amounts with decimal places (more likely to be prices)
+        if "." in str(val):
+            score += 10
+        
+        # Higher score for larger amounts (more likely to be totals)
+        if val > 1000:
+            score += 5
+        
+        # Higher score for amounts that look like Czech currency format
+        if re.search(r"\d{1,3}(?: \d{3})", original_text):
+            score += 20
+        
+        # Even higher score for amounts that look like "44 413" (exact pattern)
+        if re.match(r"^\d{1,3} \d{3}$", original_text):
+            score += 30
+        
+        # Highest score for amounts that look like "44 413,00" (exact pattern with decimal)
+        if re.match(r"^\d{1,3} \d{3},\d{2}$", original_text):
+            score += 140
+        
+        # Lower score for very small amounts (likely line items)
+        if val < 100:
+            score -= 5
+        
+        parsed.append((val, score, original_text))
+    
+    # Sort by score (descending), then by value (descending)
+    parsed.sort(key=lambda x: (x[1], x[0]), reverse=True)
+    return [val for val, _, _ in parsed]
 
 def _currency_near_amount(lines):
     joined = "\n".join(lines)
-    for lab in [r"amount due", r"grand total", r"\btotal\b", r"celkem", r"k úhradě", r"subtotal", r"bez dph", r"dph"]:
+    for lab in [r"amount due", r"grand total", r"\btotal\b", r"celkem", r"k úhradě", r"subtotal", r"bez dph", r"dph", r"celková částka", r"celkova castka"]:
         m = re.search(lab + r".{0,40}" + CURRENCY_TOKEN, joined, re.I)
         if m:
             cur = re.search(CURRENCY_TOKEN, m.group(0), re.I)
@@ -79,15 +120,40 @@ def extract_fields_heuristic(text: str) -> dict:
 
     vyst = normalize_date(vyst); splat = normalize_date(splat); duzp = normalize_date(duzp)
 
-    castka_s = _find_label_value(lines, [r"celkem k \w*uhra", r"celkem", r"total", r"amount due", r"grand total"], AMOUNT_PAT_STRICT, 3)
-    bez_dph = _find_label_value(lines, [r"bez dph", r"základ daně", r"zaklad dane", r"subtotal"], AMOUNT_PAT_STRICT, 3)
-    dph = _find_label_value(lines, [r"\bdph\b", r"\bvat\b"], AMOUNT_PAT_STRICT, 3)
+    castka_s = _find_label_value(lines, [r"celkem k \w*uhra", r"celkem", r"total", r"amount due", r"grand total", r"k úhradě", r"celková částka", r"celkova castka", r"k úhradě", r"celkem k úhradě", r"celkem", r"total", r"k úhradě", r"celkem", r"celkem", r"celkem", r"celkem", r"celkem", r"celkem", r"celkem", r"celkem", r"celkem", r"celkem", r"celkem"], AMOUNT_PAT_STRICT, 3)
+    bez_dph = _find_label_value(lines, [r"bez dph", r"základ daně", r"zaklad dane", r"subtotal", r"základ", r"zaklad", r"bez dph", r"základ"], AMOUNT_PAT_STRICT, 3)
+    dph = _find_label_value(lines, [r"\bdph\b", r"\bvat\b", r"daň", r"dan", r"dph", r"vat"], AMOUNT_PAT_STRICT, 3)
 
     if not (castka_s and bez_dph and dph):
         nums = _amounts_from_text(joined)
-        nums = sorted(nums)
         if nums:
-            castka_s = castka_s or f"{nums[-1]:.2f}"
+            # Use the highest scored amount as the main amount
+            castka_s = castka_s or f"{nums[0]:.2f}"
+            
+            # If we have multiple amounts, try to identify which is which
+            if len(nums) >= 2:
+                # The highest amount is likely the total
+                if not castka_s:
+                    castka_s = f"{nums[0]:.2f}"
+                
+                # Look for amounts that could be DPH (usually around 21% of total)
+                if not dph and castka_s:
+                    total = parse_amount(castka_s)
+                    if total:
+                        for num in nums[1:]:
+                            # Check if this could be DPH (around 21% of total)
+                            if 0.15 <= num/total <= 0.25:
+                                dph = f"{num:.2f}"
+                                break
+                
+                # Look for amounts that could be bez DPH
+                if not bez_dph and castka_s and dph:
+                    total = parse_amount(castka_s)
+                    dph_val = parse_amount(dph)
+                    if total and dph_val:
+                        bez_dph = f"{(total - dph_val):.2f}"
+        
+        # Fallback calculations if still missing
         if bez_dph and not dph and castka_s:
             try:
                 b = parse_amount(bez_dph); s = parse_amount(castka_s)
