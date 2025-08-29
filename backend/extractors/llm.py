@@ -11,15 +11,15 @@ def llm_available() -> bool:
 
 def _prompt(text: str) -> str:
     return f"""
-Extract data from this invoice. Return ONLY valid JSON matching this exact schema:
+Jsi extrakční AI pro faktury (CZ/EN). Vrať POUZE JSON dle schématu:
 {{
   "variabilni_symbol": "string|null",
   "datum_vystaveni": "YYYY-MM-DD|null",
   "datum_splatnosti": "YYYY-MM-DD|null",
   "duzp": "YYYY-MM-DD|null",
-  "castka_bez_dph": "number|null",
-  "dph": "number|null",
-  "castka_s_dph": "number|null",
+  "castka_bez_dph": "number|string|null",
+  "dph": "number|string|null",
+  "castka_s_dph": "number|string|null",
   "dodavatel": {{
     "nazev": "string|null", "ico": "string|null", "dic": "string|null", "adresa": "string|null"
   }},
@@ -27,54 +27,27 @@ Extract data from this invoice. Return ONLY valid JSON matching this exact schem
   "platba_zpusob": "string|null",
   "banka_prijemce": "string|null",
   "ucet_prijemce": "string|null",
-  "confidence": 0.8
+  "confidence": 0.0
 }}
 
-EXTRACTION RULES:
+Pravidla:
+- Datumy normalizuj na YYYY-MM-DD.
+- Částky vracej jako čísla (pokud lze), jinak string.
+- Číslo účtu může být ve formátu '123-123456789/0100', '2171532/0800', IBAN nebo BIC – vrať jak je na faktuře.
+- Pokud něco chybí, dej null a adekvátně sniž confidence.
+- ZACHOVEJ českou diakritiku (ěščřžýáíéůúňďť) v názvech a adresách.
+- Pro české faktury: měna "Kč" = "CZK".
+- Částky mohou být ve formátu "44 413,00" nebo "44413.00" - normalizuj na číslo.
+- IČO je 8místné číslo, DIČ začíná "CZ" + 8-10 číslic.
+- Variabilní symbol je obvykle číslo nebo text do 12 znaků.
+- Platební metody: "peněžní převod", "bankovní převod", "hotovost", "karta" - použij přesný text z faktury.
+- Částky bez DPH a s DPH musí sedět s celkovou částkou - zkontroluj matematicky.
+- Adresy obsahují: ulice, číslo, PSČ, město, stát - zachovej kompletní formát.
 
-1. DATES - Find these patterns:
-   - Issue date: Look for "Datum vystavení", "Date issued", "Invoice date", "Ausstellungsdatum"
-   - Due date: Look for "Datum splatnosti", "Due date", "Payment due", "Fälligkeitsdatum"  
-   - Tax point: Look for "Datum zdanitelného plnění", "DUZP", "Tax point"
-   - Convert to YYYY-MM-DD: "21.4.2023"→"2023-04-21", "04/21/2023"→"2023-04-21"
-
-2. SUPPLIER IDENTIFICATION - CRITICAL:
-   - The SUPPLIER is the company that ISSUED the invoice (invoice sender)
-   - The CUSTOMER is the company that RECEIVES the invoice (invoice recipient)
-   - Key identification rules:
-     * SUPPLIER has the bank account details for payment
-     * SUPPLIER usually appears first/top in document structure
-     * CUSTOMER is often marked with "Odběratel:", "Customer:", "Bill to:"
-     * Look for payment info (BANKA, ÚČET) - this belongs to SUPPLIER
-     * Invoice number/reference is issued BY the supplier
-   - Extract ONLY supplier information for "dodavatel" field
-   - NEVER mix supplier and customer data!
-
-3. COMPANY DETAILS:
-   - Extract exact company name including legal forms (s.r.o., a.s., Ltd., GmbH, Inc.)
-   - Tax numbers: IČO (8-digit Czech), DIČ/VAT ID (country prefix + digits)
-   - Full address of the supplier company
-
-4. AMOUNTS:
-   - Parse various formats: "1 234,56", "1,234.56", "1.234,56"
-   - Convert currency: "Kč"→"CZK", "€"→"EUR", "$"→"USD"
-
-5. PAYMENT INFO:
-   - Payment method: "Forma úhrady", "Způsob úhrady", "Payment method"
-   - Bank name: "BANKA", "Banka", "Bank"
-   - Account: "ÚČET", "Číslo účtu", "Account", "IBAN"
-
-6. REFERENCE NUMBERS:
-   - Variable symbol: "Variabilní symbol", "VS", "Variable symbol"
-
-IMPORTANT: 
-- Carefully analyze the invoice layout and structure
-- Use contextual clues, not position assumptions
-- The company with bank details is usually the supplier
-- Don't guess - if unsure, return null
-
-INVOICE TEXT:
+TEXT:
+-----
 {text}
+-----
 """
 
 def extract_fields_llm(text: str) -> dict:

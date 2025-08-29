@@ -2,7 +2,7 @@
   "name": "Alza.cz a.s. (CZ)",
   "required_keywords": [
     "Alza.cz",
-    "Faktura"
+    "Daňový doklad"
   ],
   "optional_keywords": [
     "Variabilní symbol",
@@ -15,8 +15,8 @@
     "datum_splatnosti": "(?:Datum\\s*splatnosti|Splatnost)[:\\s]+([0-9.\\-/ ]{8,10})",
     "duzp": "(?:Datum\\s*uskut\\.\\s*zdaň\\.\\s*plněn[íi]|Datum\\s*uskutečnění\\s*zdanitelného\\s*plnění|DUZP)[:\\s]+([0-9.\\-/ ]{8,10})",
     "castka_s_dph": "Celkem[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)",
-    "castka_bez_dph": "bez\\s*DPH[^\\n]*?([0-9 \\u00A0.,]+)",
-    "dph": "DPH\\s*21%[^\\n]*?([0-9 \\u00A0.,]+)",
+    "castka_bez_dph": "21\\s*%[^\\n]*?\\b([0-9 \\u00A0.,]+)\\b",
+    "dph": "21\\s*%[^\\n]*?\\b[0-9 \\u00A0.,]+\\b[^\\n]*?\\b([0-9 \\u00A0.,]+)\\b",
     "dodavatel_nazev": "(Alza\\.cz\\s*a\\.s\\.)",
     "dodavatel_ico": "\\bI[ČC]:\\s*([0-9]{8})",
     "dodavatel_dic": "\\bDI[ČC]:\\s*([A-Z]{2}\\d{8,10})",

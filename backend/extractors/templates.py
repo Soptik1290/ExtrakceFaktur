@@ -80,9 +80,6 @@ def extract_fields_template(text: str) -> Optional[dict]:
         "castka_s_dph": vals.get("castka_s_dph"),
         "dodavatel": supplier,
         "mena": detect_currency(text),
-        "platba_zpusob": vals.get("platba_zpusob"),
-        "banka_prijemce": vals.get("banka_prijemce"),
-        "ucet_prijemce": vals.get("ucet_prijemce"),
         "confidence": 0.9,
         "_template": best.name
     }

@@ -10,36 +10,11 @@ def normalize_date(s):
     if not s:
         return None
     s = str(s).strip()
-    
-    # Specific handling for Czech date formats
-    # Pattern: DD.MM.YYYY or DD.M.YYYY (with single digit month)
-    czech_pattern = re.search(r"\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b", s)
-    if czech_pattern:
-        day, month, year = czech_pattern.groups()
-        try:
-            # Ensure month and day are zero-padded
-            dt = datetime(int(year), int(month), int(day))
-            return dt.strftime("%Y-%m-%d")
-        except Exception:
-            pass
-    
-    # Pattern: DD.M.YYYY (single digit month without leading zero)
-    czech_pattern_single = re.search(r"\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b", s)
-    if czech_pattern_single:
-        day, month, year = czech_pattern_single.groups()
-        try:
-            dt = datetime(int(year), int(month), int(day))
-            return dt.strftime("%Y-%m-%d")
-        except Exception:
-            pass
-    
     try:
         dt = dateparser.parse(s, dayfirst=True, yearfirst=False)
         return dt.strftime("%Y-%m-%d")
     except Exception:
         pass
-    
-    # Generic pattern for various date formats
     m = re.search(r"\b(\d{1,2})[.\-/ ](\d{1,2})[.\-/ ](\d{2,4})\b", s)
     if m:
         d, mth, y = m.groups()
@@ -174,19 +149,12 @@ def fix_czech_chars(text: str) -> str:
         # Opravy pro adresy
         "Alej Svobody": "Alej Svobody",  # Toto je správně
         "Dopravní": "Dopravní",  # Toto je správně
-        "Jatetn{": "Jatetní",  # OCR chyba v Alza adrese
-        "Jatetn{ 33a": "Jatetní 33a",  # OCR chyba v Alza adrese
         
         # Běžné chyby v bankovních názvech
         "Ceska sporitelna": "Česká spořitelna",
         "Ceska sporitelna, a.s.": "Česká spořitelna, a.s.",
-        "Ceska spofitelna": "Česká spořitelna",  # OCR chyba
-        "Ceska spofitelna, a.s.": "Česká spořitelna, a.s.",  # OCR chyba
         "Ceska narodni banka": "Česká národní banka",
         "Ceska narodni banka, a.s.": "Česká národní banka, a.s.",
-        "CSOB, ass.": "ČSOB, a.s.",  # OCR chyba
-        "CSOB, a.s.": "ČSOB, a.s.",  # Správné
-        "CSOB": "ČSOB, a.s.",
         
         # Běžné chyby v platebních metodách
         "prevodem": "převodem",
@@ -194,9 +162,8 @@ def fix_czech_chars(text: str) -> str:
         "PREVODEM": "PŘEVODEM",
         "Cekova": "peněžní převod",
         
-        # Běžné chyby v názvech firem - POZOR: specifické opravy
-        "Oaberatel": "Odběratel",  # OCR chyba
-        "S.r.0.": "s.r.o.",  # OCR chyba (nula místo O)
+        # Běžné chyby v názvech firem
+        "Ooberate": "s.r.o.",
         
         # Běžné chyby v měnách
         "Kc": "Kč",
