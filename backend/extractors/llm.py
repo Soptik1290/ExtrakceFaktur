@@ -31,7 +31,7 @@ Jsi extrakční AI pro faktury (CZ/EN). Vrať POUZE JSON dle schématu:
 }}
 
 Pravidla:
-- Datumy normalizuj na YYYY-MM-DD. Hledej datums blízko klíčových slov jako 'Vystaveno', 'Splatnost', 'DUZP' nebo 'Tax point date'.
+- Datumy normalizuj na YYYY-MM-DD. Hledej datumy blízko klíčových slov jako 'Vystaveno', 'Splatnost', 'DUZP', 'Tax point date', 'Datum vystavení', 'Datum splatnosti', 'Datum zdanitelného plnění'. Datumy mohou být ve formátu DD.MM.YYYY, DD/MM/YYYY nebo YYYY-MM-DD.
 - Částky vracej jako čísla (pokud lze), jinak string.
 - Číslo účtu může být ve formátu '123-123456789/0100', '2171532/0800', IBAN nebo BIC – vrať jak je na faktuře.
 - Pokud něco chybí, dej null a adekvátně sniž confidence.
@@ -44,6 +44,7 @@ Pravidla:
 - Variabilní symbol je obvykle číslo nebo text do 12 znaků. Pokud není explicitně uveden, odvoď ho z čísla faktury (např. z "2018-1013" udělej "20181013").
 - Platební metody: "peněžní převod", "bankovní převod", "hotovost", "karta" - použij přesný text z faktury.
 - Částky bez DPH a s DPH musí sedět s celkovou částkou - zkontroluj matematicky.
+- DPH: Pokud je faktura bez DPH nebo osvobozena od DPH, nastav DPH na null (ne na 0). Pouze pokud je explicitně uvedeno "DPH 0 Kč" nebo podobně, pak nastav na 0.
 - Adresy obsahují: ulice, číslo, PSČ, město, stát - zachovej kompletní formát.
 - Pro dodavatele: KRITICKÉ - Identifikuj pouze jednoho hlavního dodavatele (supplier/issuer), který fakturu VYSTAVUJE. Dodavatel je obvykle:
   * V hlavičce faktury (nahoře)
@@ -57,6 +58,13 @@ Pravidla:
   - Hledej konkrétní jméno osoby nebo specifický název firmy
   - Dodavatel má obvykle platné IČO (8 číslic s checksumem)
   - Pokud nejsi 100% jistý, kdo je dodavatel, nastav confidence na 0.3 nebo méně
+  
+  KRITICKÉ KONTROLY PRO DATUMY:
+  - VŽDY hledej datumy i když nejsou explicitně označené
+  - Zkontroluj celý text faktury pro data ve formátu DD.MM.YYYY nebo DD/MM/YYYY
+  - Datum vystavení je obvykle blízko čísla faktury nebo nahoře
+  - Datum splatnosti je často v tabulce nebo blízko částky
+  - Pokud najdeš pouze jedno datum, použij ho pro datum vystavení i DUZP
 
 TEXT:
 -----
@@ -166,6 +174,17 @@ def extract_fields_llm(text: str) -> dict:
                 if parsed is not None:
                     data[k] = parsed
     
+    # Special handling for DPH - if amounts suggest no VAT, set DPH to null
+    bez_dph = data.get("castka_bez_dph")
+    s_dph = data.get("castka_s_dph") 
+    dph = data.get("dph")
+    
+    # If bez_dph == s_dph and DPH is 0, this suggests VAT-exempt invoice
+    if (bez_dph is not None and s_dph is not None and 
+        abs(float(bez_dph) - float(s_dph)) < 0.01 and 
+        dph is not None and abs(float(dph)) < 0.01):
+        data["dph"] = None
+    
     # Fix Czech characters in text fields
     for k in ["platba_zpusob", "banka_prijemce"]:
         if data.get(k):
@@ -179,7 +198,7 @@ def extract_fields_llm(text: str) -> dict:
         data["confidence"] = max(0.1, current_confidence - 0.3)
         
         # If IČO is clearly wrong, it might be wrong supplier - check for known bad patterns
-        if ico in ["45126459"]:  # Known problematic IČO from examples
+        if ico in ["45126459", "75384902"]:  # Known problematic IČO from examples
             # This suggests wrong supplier identification
             data["confidence"] = max(0.1, current_confidence - 0.5)
     
@@ -190,6 +209,8 @@ def extract_fields_llm(text: str) -> dict:
         suspicious_patterns = [
             "Firmas.r.o..",  # Known bad pattern from examples
             "Firma s.r.o.",  # Generic/suspicious name
+            "s.r.o..",       # Extra dots in company suffix
+            "a.s..",         # Extra dots in company suffix
         ]
         
         for pattern in suspicious_patterns:

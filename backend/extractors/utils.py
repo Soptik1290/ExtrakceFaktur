@@ -187,6 +187,15 @@ def fix_czech_chars(text: str) -> str:
         "Hejsek": "Hejsek",  # Toto je správně
         "Firmas.r.o..": "Firma s.r.o.",
         
+        # Opravy názvů firem - odstraň nadbytečné tečky
+        "s.r.o..": "s.r.o.",
+        "a.s..": "a.s.",
+        "spol. s r.o..": "spol. s r.o.",
+        
+        # Opravy adres
+        "Praha,": "Praha 1,",
+        "110 00 Praha,": "110 00 Praha 1,",
+        
         # Běžné chyby v bankovních názvech
         "Ceska sporitelna": "Česká spořitelna",
         "Ceska sporitelna, a.s.": "Česká spořitelna, a.s.",
@@ -195,9 +204,12 @@ def fix_czech_chars(text: str) -> str:
         
         # Běžné chyby v platebních metodách
         "prevodem": "převodem",
-        "Prevodem": "Převodem",
+        "Prevodem": "Převodem", 
         "PREVODEM": "PŘEVODEM",
         "Cekova": "peněžní převod",
+        "bankovní převod": "peněžní převod",  # Standardizace na "peněžní převod"
+        "bankovnim prevodem": "peněžní převod",
+        "Bankovní převod": "peněžní převod",
         
         # Běžné chyby v názvech firem
         "Ooberate": "s.r.o.",
