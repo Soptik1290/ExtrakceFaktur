@@ -45,7 +45,7 @@ Pravidla:
 - Platební metody: "peněžní převod", "bankovní převod", "hotovost", "karta" - použij přesný text z faktury.
 - Částky bez DPH a s DPH musí sedět s celkovou částkou - zkontroluj matematicky.
 - Adresy obsahují: ulice, číslo, PSČ, město, stát - zachovej kompletní formát.
-- Pro dodavatele: Identifikuj pouze jednoho hlavního dodavatele, obvykle v hlavičce faktury. Nepoužívej smíchané názvy z různých částí.
+- Pro dodavatele: Identifikuj pouze jednoho hlavního dodavatele (supplier), obvykle v hlavičce nebo horní části faktury. Nepoužívej smíchané názvy z různých částí. Rozlišuj od odběratele (customer) a ignoruj ho – extrahuj pouze dodavatele. Pokud je více podobných bloků, vezmi ten s označením 'Dodavatel' nebo ten nahoře.
 
 TEXT:
 -----
