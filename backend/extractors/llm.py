@@ -51,9 +51,8 @@ TEXT:
 """
 
 def extract_fields_llm(text: str) -> dict:
-    client = OpenAI()
-    model = os.getenv("OPENAI_MODEL", "gpt-5-main")
-
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
     resp = client.chat.completions.create(
         model=model,
         messages=[
@@ -62,34 +61,27 @@ def extract_fields_llm(text: str) -> dict:
         ],
         temperature=0.2,
     )
-
     raw = resp.choices[0].message.content.strip()
     m = re.search(r"\{.*\}", raw, re.S)
-    if m:
-        raw = m.group(0)
+    if m: raw = m.group(0)
     data = json.loads(raw)
 
-    for k in ["datum_vystaveni", "datum_splatnosti", "duzp"]:
+    for k in ["datum_vystaveni","datum_splatnosti","duzp"]:
         data[k] = normalize_date(data.get(k))
-
     def _num(v):
-        if v is None:
-            return None
-        if isinstance(v, (int, float)):
-            return float(v)
+        if v is None: return None
+        if isinstance(v, (int,float)): return float(v)
         return parse_amount(str(v))
-
-    for k in ["castka_bez_dph", "dph", "castka_s_dph"]:
+    for k in ["castka_bez_dph","dph","castka_s_dph"]:
         data[k] = _num(data.get(k))
 
-    # Ensure dodavatel is dict
+    # Ensure dodavatel is a dict with expected keys even if LLM returns a string/list/null
     supplier = data.get("dodavatel")
     if not isinstance(supplier, dict):
-        supplier = {
-            "nazev": supplier if isinstance(supplier, str) else None,
-            "ico": None, "dic": None, "adresa": None,
-        }
+        supplier = {"nazev": supplier if isinstance(supplier, str) else None,
+                    "ico": None, "dic": None, "adresa": None}
     else:
+        # Coerce unexpected nested structures to strings where sensible
         for key in ["nazev", "ico", "dic", "adresa"]:
             val = supplier.get(key)
             if isinstance(val, (list, dict)):
@@ -100,28 +92,28 @@ def extract_fields_llm(text: str) -> dict:
         "dic": supplier.get("dic"),
         "adresa": fix_czech_chars(supplier.get("adresa")),
     }
-
-    # Normalize currency
+    
+    # Normalize currency - convert "Kč" to "CZK"
     if data.get("mena") == "Kč":
         data["mena"] = "CZK"
-
-    # Normalize amounts
-    for k in ["castka_bez_dph", "dph", "castka_s_dph"]:
-        if data.get(k) is not None and isinstance(data[k], str):
-            parsed = parse_amount(data[k])
-            if parsed is not None:
-                data[k] = parsed
-
-    # Fix Czech chars
+    
+    # Normalize amounts - ensure they are numbers
+    for k in ["castka_bez_dph","dph","castka_s_dph"]:
+        if data.get(k) is not None:
+            if isinstance(data[k], str):
+                # Try to parse amount from string
+                parsed = parse_amount(data[k])
+                if parsed is not None:
+                    data[k] = parsed
+    
+    # Fix Czech characters in text fields
     for k in ["platba_zpusob", "banka_prijemce"]:
         if data.get(k):
             data[k] = fix_czech_chars(data[k])
-
-    for k in ["mena", "platba_zpusob", "banka_prijemce", "ucet_prijemce"]:
+    
+    for k in ["mena","platba_zpusob","banka_prijemce","ucet_prijemce"]:
         data.setdefault(k, None)
-
     data.setdefault("confidence", 0.75)
     data.setdefault("variabilni_symbol", None)
-
     return data
 
