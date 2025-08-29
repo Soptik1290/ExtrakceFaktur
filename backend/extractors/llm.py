@@ -41,11 +41,11 @@ Pravidla:
 - Částky mohou být ve formátu "44 413,00" nebo "44413.00" - normalizuj na číslo.
 - IČO je 8místné číslo, ověř checksum (algoritmus: vážený součet prvních 7 číslic s vahami 8-2, modulo 11 určuje poslední číslo).
 - DIČ začíná "CZ" + 8-10 číslic.
-- Variabilní symbol je obvykle číslo nebo text do 12 znaků.
+- Variabilní symbol je obvykle číslo nebo text do 12 znaků. Pokud není explicitně uveden, odvoď ho z čísla faktury (např. z "2018-1013" udělej "20181013").
 - Platební metody: "peněžní převod", "bankovní převod", "hotovost", "karta" - použij přesný text z faktury.
 - Částky bez DPH a s DPH musí sedět s celkovou částkou - zkontroluj matematicky.
 - Adresy obsahují: ulice, číslo, PSČ, město, stát - zachovej kompletní formát.
-- Pro dodavatele: Identifikuj pouze jednoho hlavního dodavatele (supplier), obvykle v hlavičce nebo horní části faktury. Nepoužívej smíchané názvy z různých částí. Rozlišuj od odběratele (customer) a ignoruj ho – extrahuj pouze dodavatele. Pokud je více podobných bloků, vezmi ten s označením 'Dodavatel' nebo ten nahoře.
+- Pro dodavatele: Identifikuj pouze jednoho hlavního dodavatele (supplier/issuer), který vystavuje fakturu – obvykle v hlavičce, dole s podpisem nebo označený jako 'Dodavatel'. Striktně rozlišuj od odběratele (customer/odběratel) a ignoruj jeho detaily. Nepoužívej smíchané názvy. Pokud je více bloků, vezmi ten spojený s vystavitelem (často s podpisem nebo dole).
 
 TEXT:
 -----
