@@ -52,7 +52,7 @@ TEXT:
 
 def extract_fields_llm(text: str) -> dict:
     client = OpenAI()
-    model = os.getenv("OPENAI_MODEL", "gpt-5")
+    model = os.getenv("OPENAI_MODEL", "gpt-5-main")
 
     resp = client.chat.completions.create(
         model=model,
@@ -124,3 +124,4 @@ def extract_fields_llm(text: str) -> dict:
     data.setdefault("variabilni_symbol", None)
 
     return data
+
