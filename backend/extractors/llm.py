@@ -11,15 +11,15 @@ def llm_available() -> bool:
 
 def _prompt(text: str) -> str:
     return f"""
-Jsi expert na extrakci dat z faktur. Specializuješ se na české faktury, ale zvládneš i zahraniční. Vrať POUZE JSON dle schématu:
+Extract data from this invoice. Return ONLY valid JSON matching this exact schema:
 {{
   "variabilni_symbol": "string|null",
   "datum_vystaveni": "YYYY-MM-DD|null",
   "datum_splatnosti": "YYYY-MM-DD|null",
   "duzp": "YYYY-MM-DD|null",
-  "castka_bez_dph": "number|string|null",
-  "dph": "number|string|null",
-  "castka_s_dph": "number|string|null",
+  "castka_bez_dph": "number|null",
+  "dph": "number|null",
+  "castka_s_dph": "number|null",
   "dodavatel": {{
     "nazev": "string|null", "ico": "string|null", "dic": "string|null", "adresa": "string|null"
   }},
@@ -27,53 +27,53 @@ Jsi expert na extrakci dat z faktur. Specializuješ se na české faktury, ale z
   "platba_zpusob": "string|null",
   "banka_prijemce": "string|null",
   "ucet_prijemce": "string|null",
-  "confidence": 0.0
+  "confidence": 0.8
 }}
 
-PRAVIDLA EXTRAKCE:
-1. DATUMY - hledej tyto označení:
-   - Datum vystavení: "Datum vystavení", "Vystaven", "Date issued", "Invoice date"
-   - Datum splatnosti: "Datum splatnosti", "Splatnost", "Due date", "Payment due"
-   - DUZP: "Datum zdanitelného plnění", "DUZP", "Tax point date"
-   - Formáty: DD.MM.YYYY, DD.M.YYYY, MM/DD/YYYY → převeď na YYYY-MM-DD
-   - Příklad: "21.4.2023" → "2023-04-21"
+EXTRACTION RULES:
 
-2. DODAVATEL vs ODBĚRATEL - POZOR:
-   - DODAVATEL = vystavitel faktury (obvykle vlevo nahoře nebo v hlavičce)
-   - ODBĚRATEL = příjemce faktury (obvykle vpravo nahoře)
-   - Extrahuj POUZE údaje dodavatele do pole "dodavatel"
-   - Nikdy nemiš dodavatele s odběratelem!
+1. DATES - Find these patterns:
+   - Issue date: Look for "Datum vystavení", "Date issued", "Invoice date", "Ausstellungsdatum"
+   - Due date: Look for "Datum splatnosti", "Due date", "Payment due", "Fälligkeitsdatum"  
+   - Tax point: Look for "Datum zdanitelného plnění", "DUZP", "Tax point"
+   - Convert to YYYY-MM-DD: "21.4.2023"→"2023-04-21", "04/21/2023"→"2023-04-21"
 
-3. NÁZEV DODAVATELE:
-   - Přesný název společnosti vystavivatele
-   - Zachovej právní formy: "s.r.o.", "a.s.", "Ltd.", "GmbH", "Inc."
-   - Zachovaj původní jazyk a pravopis
+2. SUPPLIER IDENTIFICATION - CRITICAL:
+   - The SUPPLIER is the company that ISSUED the invoice (invoice sender)
+   - The CUSTOMER is the company that RECEIVES the invoice (invoice recipient)
+   - Look for structural clues:
+     * Invoice header/letterhead usually contains supplier info
+     * "From:", "Seller:", "Vendor:" indicates supplier
+     * "To:", "Bill to:", "Customer:", "Odběratel:" indicates customer
+     * Payment details (bank account) usually belong to supplier
+   - Extract ONLY supplier information for "dodavatel" field
+   - NEVER mix supplier and customer data!
 
-4. DAŇOVÁ ČÍSLA:
-   - IČO: obvykle 8místné číslo (české faktury)
-   - DIČ: CZ + 8-10 číslic (české), nebo jiný formát (DE123, GB123, atd.)
-   - Extrahuj z části DODAVATELE
+3. COMPANY DETAILS:
+   - Extract exact company name including legal forms (s.r.o., a.s., Ltd., GmbH, Inc.)
+   - Tax numbers: IČO (8-digit Czech), DIČ/VAT ID (country prefix + digits)
+   - Full address of the supplier company
 
-5. ČÁSTKY A MĚNA:
-   - Rozpoznej formáty: "1 234,56", "1,234.56", "1.234,56"
-   - Normalizuj měny: "Kč"→"CZK", "€"→"EUR", "$"→"USD"
-   - Pokud je DPH 0%, tak dph = 0
+4. AMOUNTS:
+   - Parse various formats: "1 234,56", "1,234.56", "1.234,56"
+   - Convert currency: "Kč"→"CZK", "€"→"EUR", "$"→"USD"
 
-6. PLATEBNÍ ÚDAJE:
-   - Způsob úhrady: "Forma úhrady", "Způsob úhrady", "Payment method"
-   - Banka: "BANKA", "Banka", "Bank"
-   - Účet: "ÚČET", "Číslo účtu", "Account", "IBAN"
+5. PAYMENT INFO:
+   - Payment method: "Forma úhrady", "Způsob úhrady", "Payment method"
+   - Bank name: "BANKA", "Banka", "Bank"
+   - Account: "ÚČET", "Číslo účtu", "Account", "IBAN"
 
-7. VARIABILNÍ SYMBOL:
-   - Hledej: "Variabilní symbol", "VS", "Variable symbol"
-   - Obvykle číslo pro identifikaci platby
+6. REFERENCE NUMBERS:
+   - Variable symbol: "Variabilní symbol", "VS", "Variable symbol"
 
-DŮLEŽITÉ: Pečlivě analyzuj strukturu faktury. Neodhaduj pozice - hledej skutečné popisky a kontextové indicie k rozlišení dodavatele od odběratele.
+IMPORTANT: 
+- Carefully analyze the invoice layout and structure
+- Use contextual clues, not position assumptions
+- The company with bank details is usually the supplier
+- Don't guess - if unsure, return null
 
-TEXT FAKTURY:
------
+INVOICE TEXT:
 {text}
------
 """
 
 def extract_fields_llm(text: str) -> dict:
