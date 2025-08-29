@@ -50,6 +50,69 @@ def _detect_vs(text: str, lines):
         candidates.append(m.group(1))
     return first(candidates)
 
+def _extract_supplier(lines):
+    """
+    Try to extract supplier (dodavatel) block heuristically from lines.
+    Strategy:
+    - Find all occurrences of IČO/DIČ and build small windows around them
+    - Prefer a window explicitly labelled 'dodavatel' and avoid 'odběratel'
+    - Otherwise, prefer the window that contains DIČ starting with 'CZ'
+    - From the chosen window, infer name (a line before), IČO, DIČ and an address line
+    """
+    ico_pat = re.compile(r"I[ČC]O\s*[:#-]?\s*(\d{8})", re.I)
+    dic_pat = re.compile(r"DI[ČC]\s*[:#-]?\s*([A-Z]{2}\s?\d{8,12}|\d{8,12})", re.I)
+    psc_pat = re.compile(r"\b\d{3}\s?\d{2}\b")  # Czech ZIP
+
+    candidates = []
+    for idx, line in enumerate(lines):
+        has_ico = bool(ico_pat.search(line))
+        has_dic = bool(dic_pat.search(line))
+        if not (has_ico or has_dic):
+            continue
+        start = max(0, idx - 4)
+        end = min(len(lines), idx + 5)
+        block = lines[start:end]
+        block_text = "\n".join(block)
+        label_score = 0
+        if re.search(r"dodavatel", block_text, re.I):
+            label_score += 3
+        if re.search(r"odb[ěe]ratel", block_text, re.I):
+            label_score -= 3
+        if re.search(r"\bCZ\s?\d{8,12}\b", block_text):
+            label_score += 2
+
+        ico_m = ico_pat.search(block_text)
+        dic_m = dic_pat.search(block_text)
+        ico = ico_m.group(1) if ico_m else None
+        dic = dic_m.group(1).replace(" ", "") if dic_m else None
+
+        # Guess name as the nearest meaningful line above that is not a label
+        name = None
+        for up in range(idx - 1, start - 1, -1):
+            ln = lines[up].strip()
+            if re.search(r"I[ČC]O|DI[ČC]|odb[ěe]ratel|dodavatel|IČO|DIČ", ln, re.I):
+                continue
+            if len(re.sub(r"[^A-Za-zÁČĎÉĚÍŇÓŘŠŤÚŮÝŽa-záčďéěíňóřšťúůýž.& ]", "", ln)) >= 3:
+                name = ln
+                break
+
+        # Guess address as a line in the block that contains street/ZIP/city hints
+        address = None
+        for ln in block:
+            if psc_pat.search(ln) or re.search(r"\d+\s*[,/]*\s*[A-Za-z]", ln):
+                if not re.search(r"I[ČC]O|DI[ČC]", ln, re.I):
+                    address = ln
+                    break
+
+        candidates.append((label_score, start, end, {"nazev": name, "ico": ico, "dic": dic, "adresa": address}))
+
+    if not candidates:
+        return {"nazev": None, "ico": None, "dic": None, "adresa": None}
+
+    # Pick the best-scoring candidate
+    best = sorted(candidates, key=lambda t: t[0], reverse=True)[0][3]
+    return best
+
 def _amounts_from_text(text: str):
     raw = re.findall(AMOUNT_PAT_STRICT, text)
     parsed = []
@@ -117,8 +180,13 @@ def extract_fields_heuristic(text: str) -> dict:
         or pick_nearby(joined, ["vyst", "issue", "vystavení", "vystaveni"], DATE_PAT)
     splat = _find_label_value(lines, [r"splatnost", r"due date", r"payment due", r"datum splatnosti", r"datum splatnosti"], DATE_PAT, 3) \
         or pick_nearby(joined, ["splatnost", "due", "splatnost"], DATE_PAT)
-    duzp = _find_label_value(lines, [r"duzp", r"tax point", r"date of taxable", r"datum uskutecnění zdanitelného plnění", r"datum uskutecneni zdanitelneho plneni"], DATE_PAT, 3) \
-        or pick_nearby(joined, ["duzp", r"tax point", "uskutecnění", "uskutecneni"], DATE_PAT)
+    duzp = _find_label_value(lines, [
+            r"duzp", r"tax point", r"date of taxable",
+            r"datum uskutecnění zdanitelného plnění", r"datum uskutecneni zdanitelneho plneni",
+            r"zdanitelného plnění", r"zdanitelneho plneni", r"zdan\.\s*pln",
+            r"datum zdan\.?\s*pln", r"datum zdanitelneho plneni", r"datum zdanění plnění", r"datum zdaneni plneni"
+        ], DATE_PAT, 3) \
+        or pick_nearby(joined, ["duzp", r"tax point", "uskutecnění", "uskutecneni", "zdan", "plnění", "plneni"], DATE_PAT)
 
     vyst = normalize_date(vyst); splat = normalize_date(splat); duzp = normalize_date(duzp)
 
@@ -200,7 +268,7 @@ def extract_fields_heuristic(text: str) -> dict:
         [r"\b(?:č[iy]slo\s*[\w]*\s*ú[čc]tu|cislo uctu|account number|iban)\b", r"cislo účtu", r"cislo uctu", r"číslo účtu", r"číslo uctu", r"čísla účtu", r"cisla uctu", r"čísla účtu", r"cisla uctu"],
         r"[:\s]*([0-9\- ]{1,20}/[0-9]{3,6}|[A-Z]{2}[0-9A-Z ]{12,34})", 3)
 
-    supplier = {"nazev": None, "ico": None, "dic": None, "adresa": None}
+    supplier = _extract_supplier(lines)
 
     result = {
         "variabilni_symbol": vs,
