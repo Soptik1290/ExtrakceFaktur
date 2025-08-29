@@ -36,6 +36,7 @@ Pravidla:
 - Číslo účtu může být ve formátu '123-123456789/0100', '2171532/0800', IBAN nebo BIC – vrať jak je na faktuře.
 - Pokud něco chybí, dej null a adekvátně sniž confidence.
 - ZACHOVEJ českou diakritiku (ěščřžýáíéůúňďť) v názvech a adresách.
+- Českou diakritiku můžeš porovnat s Českou databází jmen a názvů
 - Pro české faktury: měna "Kč" = "CZK".
 - Částky mohou být ve formátu "44 413,00" nebo "44413.00" - normalizuj na číslo.
 - IČO je 8místné číslo, DIČ začíná "CZ" + 8-10 číslic.
@@ -52,7 +53,7 @@ TEXT:
 
 def extract_fields_llm(text: str) -> dict:
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     resp = client.chat.completions.create(
         model=model,
         messages=[
@@ -116,4 +117,5 @@ def extract_fields_llm(text: str) -> dict:
     data.setdefault("confidence", 0.75)
     data.setdefault("variabilni_symbol", None)
     return data
+
 
