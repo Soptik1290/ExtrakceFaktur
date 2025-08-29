@@ -11,7 +11,7 @@ def llm_available() -> bool:
 
 def _prompt(text: str) -> str:
     return f"""
-Jsi extrakční AI pro české faktury. Vrať POUZE JSON dle schématu:
+Jsi expert na extrakci dat z faktur. Specializuješ se na české faktury, ale zvládneš i zahraniční. Vrať POUZE JSON dle schématu:
 {{
   "variabilni_symbol": "string|null",
   "datum_vystaveni": "YYYY-MM-DD|null",
@@ -30,38 +30,47 @@ Jsi extrakční AI pro české faktury. Vrať POUZE JSON dle schématu:
   "confidence": 0.0
 }}
 
-DŮLEŽITÁ PRAVIDLA PRO ČESKÉ FAKTURY:
-1. DATUMY - HLEDEJ TYTO POLÍČKA:
-   - "Datum vystavení" nebo "Datum vydání" = datum_vystaveni
-   - "Datum splatnosti" nebo "Datum úhrady" = datum_splatnosti  
-   - "Datum zdanitelného plnění" nebo "DUZP" = duzp
-   - Datumy jsou ve formátu DD.MM.YYYY - převeď na YYYY-MM-DD
+PRAVIDLA EXTRAKCE:
+1. DATUMY - hledej tyto označení:
+   - Datum vystavení: "Datum vystavení", "Vystaven", "Date issued", "Invoice date"
+   - Datum splatnosti: "Datum splatnosti", "Splatnost", "Due date", "Payment due"
+   - DUZP: "Datum zdanitelného plnění", "DUZP", "Tax point date"
+   - Formáty: DD.MM.YYYY, DD.M.YYYY, MM/DD/YYYY → převeď na YYYY-MM-DD
+   - Příklad: "21.4.2023" → "2023-04-21"
 
-2. ADRESY - ROZLIŠUJ DODAVATELE A ODBĚRATELE:
-   - Dodavatel (vystavitel faktury) = horní část faktury
-   - Odběratel (příjemce faktury) = spodní část faktury
-   - Adresa dodavatele = pole "dodavatel.adresa"
-   - NIKDY nemíchej adresy dodavatele a odběratele
+2. DODAVATEL vs ODBĚRATEL - POZOR:
+   - DODAVATEL = vystavitel faktury (obvykle vlevo nahoře nebo v hlavičce)
+   - ODBĚRATEL = příjemce faktury (obvykle vpravo nahoře)
+   - Extrahuj POUZE údaje dodavatele do pole "dodavatel"
+   - Nikdy nemiš dodavatele s odběratelem!
 
 3. NÁZEV DODAVATELE:
-   - Pouze název společnosti, která vystavuje fakturu
-   - NIKDY nemíchej s názvem odběratele
+   - Přesný název společnosti vystavivatele
+   - Zachovej právní formy: "s.r.o.", "a.s.", "Ltd.", "GmbH", "Inc."
+   - Zachovaj původní jazyk a pravopis
 
-4. FORMÁT DAT:
-   - České datumy: 21.4.2023 → 2023-04-21
-   - České datumy: 5.5.2023 → 2023-05-05
-   - Pokud je měsíc jednociferný, doplň 0
+4. DAŇOVÁ ČÍSLA:
+   - IČO: obvykle 8místné číslo (české faktury)
+   - DIČ: CZ + 8-10 číslic (české), nebo jiný formát (DE123, GB123, atd.)
+   - Extrahuj z části DODAVATELE
 
-5. DALŠÍ PRAVIDLA:
-   - Částky normalizuj na čísla (44 413,00 → 44413.00)
-   - Měna "Kč" = "CZK"
-   - IČO je 8místné číslo
-   - DIČ začíná "CZ" + 8-10 číslic
-   - Variabilní symbol je obvykle číslo faktury
-   - Platební metody: "peněžní převod", "bankovní převod", "hotovost"
-   - Adresy obsahují: ulice, číslo, PSČ, město, stát
+5. ČÁSTKY A MĚNA:
+   - Rozpoznej formáty: "1 234,56", "1,234.56", "1.234,56"
+   - Normalizuj měny: "Kč"→"CZK", "€"→"EUR", "$"→"USD"
+   - Pokud je DPH 0%, tak dph = 0
 
-TEXT:
+6. PLATEBNÍ ÚDAJE:
+   - Způsob úhrady: "Forma úhrady", "Způsob úhrady", "Payment method"
+   - Banka: "BANKA", "Banka", "Bank"
+   - Účet: "ÚČET", "Číslo účtu", "Account", "IBAN"
+
+7. VARIABILNÍ SYMBOL:
+   - Hledej: "Variabilní symbol", "VS", "Variable symbol"
+   - Obvykle číslo pro identifikaci platby
+
+DŮLEŽITÉ: Pečlivě analyzuj strukturu faktury. Neodhaduj pozice - hledej skutečné popisky a kontextové indicie k rozlišení dodavatele od odběratele.
+
+TEXT FAKTURY:
 -----
 {text}
 -----
