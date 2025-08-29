@@ -58,13 +58,32 @@ def _total_from_text_fallback(text: str):
     """
     if not text:
         return None
-    amount_pattern = r"\b\d{1,3}(?:[ \u00A0]\d{3})*(?:[,.]\d{2})\b|\b\d{1,3}(?:[ \u00A0]\d{3})+\b|\b\d{4,6}\b"
+    amount_pattern = r"\b\d{1,3}(?:[ \u00A0]\d{3})*(?:[,.]\d{2})\b|\b\d{1,3}(?:[ \u00A0]\d{3})+\b"
     keywords = [
-        r"k \s*úhradě", r"k \s*uhrade", r"celkem\s*k\s*úhradě", r"celkem\s*k\s*uhrade",
-        r"celkem", r"amount due", r"grand total", r"total", r"celková\s*částka", r"celkova\s*castka"
+        r"k\s*[úu]hrad[ěe]", r"celkem\s*k\s*[úu]hrad[ěe]", r"celkem", r"amount due", r"grand total", r"\btotal\b", r"celkov[aá]\s*\u010d[aá]stka|celkova\s*castka"
     ]
-    hit = pick_nearby(text, keywords, amount_pattern, window=200)
-    return parse_amount(hit) if hit else None
+    # 1) Try nearby-window search with a generous window
+    hit = pick_nearby(text, keywords, amount_pattern, window=800)
+    if hit:
+        val = parse_amount(hit)
+        if val is not None:
+            return val
+    # 2) Try direct label→amount regex over entire text
+    patterns = [
+        r"(?:k\s*[úu]hrad[ěe].{0,120}?)(\d{1,3}(?:[ \u00A0]\d{3})*(?:[,.]\d{2})|\d{1,3}(?:[ \u00A0]\d{3})+)",
+        r"(?:celkem\s*k\s*[úu]hrad[ěe].{0,120}?)(\d{1,3}(?:[ \u00A0]\d{3})*(?:[,.]\d{2})|\d{1,3}(?:[ \u00A0]\d{3})+)",
+        r"(?:celkem[^\n\r]{0,120}?)(\d{1,3}(?:[ \u00A0]\d{3})*(?:[,.]\d{2})|\d{1,3}(?:[ \u00A0]\d{3})+)"
+    ]
+    candidates = []
+    for pat in patterns:
+        for m in re.finditer(pat, text, re.I):
+            candidates.append(m.group(1))
+    if candidates:
+        numbers = [parse_amount(c) for c in candidates if parse_amount(c) is not None]
+        if numbers:
+            # Heuristic: choose the largest candidate (grand totals are usually max)
+            return max(numbers)
+    return None
 
 def extract_fields_llm(text: str) -> dict:
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -139,10 +158,12 @@ def extract_fields_llm(text: str) -> dict:
         if text_total is not None:
             cur_total = data.get("castka_s_dph")
             if cur_total is None or abs(float(cur_total) - float(text_total)) > 1.0:
-                data["castka_s_dph"] = float(text_total)
-                # Keep DPH if clearly zero, otherwise let postprocess compute
-                # the remaining field relationships.
-                # If DPH is None and Bez DPH present, postprocess will fill.
+                fixed_total = float(text_total)
+                data["castka_s_dph"] = fixed_total
+                # If VAT is zero or missing, mirror total into bez DPH
+                if data.get("dph") in [None, 0, 0.0]:
+                    data["dph"] = 0.0
+                    data["castka_bez_dph"] = fixed_total
     except Exception:
         # Never let a fallback correction break extraction
         pass
