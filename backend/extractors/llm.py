@@ -1,6 +1,7 @@
 
 import os, json, re
 from .utils import normalize_date, parse_amount, fix_czech_chars
+from .heuristics import extract_fields_heuristic
 try:
     from openai import OpenAI
 except Exception:
@@ -49,6 +50,35 @@ TEXT:
 {text}
 -----
 """
+
+DATE_PAT = r"(?:\b\d{1,2}[.\-/ ]\d{1,2}[.\-/ ]\d{2,4}\b|\b\d{4}-\d{1,2}-\d{1,2}\b)"
+
+def _dates_from_text(text: str) -> dict:
+    t = re.sub(r"\s+", " ", text or "")
+    # Direct label → value patterns, tolerant to accents
+    def grab(pattern: str):
+        m = re.search(pattern + r"\s*[:\-]?\s*(" + DATE_PAT + r")", t, re.I)
+        return m.group(1) if m else None
+    vyst = grab(r"datum\s+vystav(?:en[íi]|eni)") or grab(r"vystaven[íi]")
+    splat = grab(r"datum\s+splatnosti") or grab(r"splatnost")
+    duzp = grab(r"datum\s+zdanitel(?:n[ée]ho|neho)\s+pln(?:[ěe]n[íi]|eni)") or grab(r"duzp")
+    return {
+        "datum_vystaveni": normalize_date(vyst),
+        "datum_splatnosti": normalize_date(splat),
+        "duzp": normalize_date(duzp),
+    }
+
+def _supplier_looks_mixed(supplier: dict) -> bool:
+    if not isinstance(supplier, dict):
+        return False
+    name = (supplier.get("nazev") or "").lower()
+    addr = (supplier.get("adresa") or "").lower()
+    if any(tok in name for tok in ["odb", "oberatel", "oaberatel"]):
+        return True
+    # two different cities/streets hints → likely concatenated address
+    if ("jungmannova" in addr and "masarykova" in addr) or ("praha" in addr and "brno" in addr):
+        return True
+    return False
 
 def extract_fields_llm(text: str) -> dict:
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -115,6 +145,28 @@ def extract_fields_llm(text: str) -> dict:
         data.setdefault(k, None)
     data.setdefault("confidence", 0.75)
     data.setdefault("variabilni_symbol", None)
+
+    # Backfill missing dates from OCR text (does not affect other fields)
+    dates_fb = _dates_from_text(text)
+    for k in ["datum_vystaveni", "datum_splatnosti", "duzp"]:
+        if data.get(k) is None and dates_fb.get(k) is not None:
+            data[k] = dates_fb[k]
+
+    # If supplier looks mixed/incorrect, prefer heuristic supplier block
+    try:
+        if _supplier_looks_mixed(data.get("dodavatel")):
+            h = extract_fields_heuristic(text)
+            hs = (h or {}).get("dodavatel") or {}
+            if any(hs.get(k) for k in ["nazev","ico","dic","adresa"]):
+                data["dodavatel"] = {
+                    "nazev": fix_czech_chars(hs.get("nazev")),
+                    "ico": hs.get("ico"),
+                    "dic": hs.get("dic"),
+                    "adresa": fix_czech_chars(hs.get("adresa")),
+                }
+                data["confidence"] = max(0.7, float(data.get("confidence") or 0.75) - 0.02)
+    except Exception:
+        pass
     return data
 
 
