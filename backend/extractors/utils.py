@@ -178,6 +178,8 @@ def fix_czech_chars(text: str) -> str:
         # Běžné chyby v bankovních názvech
         "Ceska sporitelna": "Česká spořitelna",
         "Ceska sporitelna, a.s.": "Česká spořitelna, a.s.",
+        "Ceska spofitelna": "Česká spořitelna",  # OCR chyba
+        "Ceska spofitelna, a.s.": "Česká spořitelna, a.s.",  # OCR chyba
         "Ceska narodni banka": "Česká národní banka",
         "Ceska narodni banka, a.s.": "Česká národní banka, a.s.",
         
@@ -187,8 +189,9 @@ def fix_czech_chars(text: str) -> str:
         "PREVODEM": "PŘEVODEM",
         "Cekova": "peněžní převod",
         
-        # Běžné chyby v názvech firem
-        "Ooberate": "s.r.o.",
+        # Běžné chyby v názvech firem - POZOR: specifické opravy
+        "Oaberatel": "Odběratel",  # OCR chyba
+        "S.r.0.": "s.r.o.",  # OCR chyba (nula místo O)
         
         # Běžné chyby v měnách
         "Kc": "Kč",

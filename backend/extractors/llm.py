@@ -41,11 +41,12 @@ EXTRACTION RULES:
 2. SUPPLIER IDENTIFICATION - CRITICAL:
    - The SUPPLIER is the company that ISSUED the invoice (invoice sender)
    - The CUSTOMER is the company that RECEIVES the invoice (invoice recipient)
-   - Look for structural clues:
-     * Invoice header/letterhead usually contains supplier info
-     * "From:", "Seller:", "Vendor:" indicates supplier
-     * "To:", "Bill to:", "Customer:", "Odběratel:" indicates customer
-     * Payment details (bank account) usually belong to supplier
+   - Key identification rules:
+     * SUPPLIER has the bank account details for payment
+     * SUPPLIER usually appears first/top in document structure
+     * CUSTOMER is often marked with "Odběratel:", "Customer:", "Bill to:"
+     * Look for payment info (BANKA, ÚČET) - this belongs to SUPPLIER
+     * Invoice number/reference is issued BY the supplier
    - Extract ONLY supplier information for "dodavatel" field
    - NEVER mix supplier and customer data!
 

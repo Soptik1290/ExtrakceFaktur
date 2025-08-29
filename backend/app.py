@@ -36,6 +36,16 @@ class ExtractResponse(BaseModel):
 def health():
     return {"status": "ok"}
 
+@app.post("/api/debug-text")
+async def debug_text(file: UploadFile = File(...)):
+    """Debug endpoint to see extracted text"""
+    try:
+        content = await file.read()
+        text = extract_text_from_file(filename=file.filename, data=content)
+        return {"text": text, "length": len(text)}
+    except Exception as e:
+        return {"error": str(e)}
+
 @app.post("/api/extract", response_model=ExtractResponse)
 async def extract(file: UploadFile = File(...), method: Optional[str] = Query("auto")):
     try:
