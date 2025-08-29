@@ -1,0 +1,29 @@
+{
+  "name": "Globex Ltd. (DE)",
+  "required_keywords": [
+    "Globex",
+    "VAT:"
+  ],
+  "optional_keywords": [
+    "Issue date",
+    "Amount due"
+  ],
+  "fields": {
+    "variabilni_symbol": "(?:VS[:\\s]+|Variable symbol[:\\s]+)?(\\d{6,12})",
+    "datum_vystaveni": "(?:Issue date|Issue)[:\\s]+([0-9.\\-/ ]{8,})",
+    "datum_splatnosti": "(?:Due date|Payment due)[:\\s]+([0-9.\\-/ ]{8,})",
+    "duzp": "(?:Tax point|Date of taxable supply)[:\\s]+([0-9.\\-/ ]{8,})",
+    "castka_bez_dph": "(?:Subtotal|Bez DPH)[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:EUR|€|Kč|CZK)?",
+    "dph": "(?:VAT)[^:]*:\\s*([0-9 \\u00A0.,]+)\\s*(?:EUR|€|Kč|CZK)?",
+    "castka_s_dph": "(?:Amount due|Total|Grand total)[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:EUR|€|Kč|CZK)?",
+    "dodavatel_nazev": "(Globex\\s*Ltd\\.)",
+    "dodavatel_dic": "VAT[:\\s]+([A-Z]{2}[A-Z0-9]{8,12})",
+    "dodavatel_adresa": "Globex.*?\\n(.*)"
+  },
+  "supplier_defaults": {
+    "nazev": "Globex Ltd.",
+    "ico": null,
+    "dic": null,
+    "adresa": null
+  }
+}

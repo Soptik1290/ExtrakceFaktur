@@ -1,79 +1,158 @@
-from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import JSONResponse, RedirectResponse
-from typing import Dict, Any
+
+import io, os, csv, json
+from typing import Optional
+from fastapi import FastAPI, UploadFile, File, Query, Body
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse, JSONResponse
+from starlette.staticfiles import StaticFiles
+from pydantic import BaseModel
+from dotenv import load_dotenv
+
 from .extractors.ocr import extract_text_from_file
 from .extractors.heuristics import extract_fields_heuristic
 from .extractors.validate import validate_extraction
-from . import llm as llm_mod
+from .extractors.postprocess import autofill_amounts
+from .extractors.llm import extract_fields_llm, llm_available
+from .extractors.templates import extract_fields_template
 
-app = FastAPI(title="ExtrakceFaktur API", version="1.0.0")
+load_dotenv()
 
-CRITICAL_FIELDS = ["variabilni_symbol", "datum_vystaveni", "datum_splatnosti", "castka_s_dph"]
+app = FastAPI(title="Invoice Extractor", version="0.3.0")
 
-def compute_confidence(data: dict, val: dict) -> float:
-    score = 0.5
-    score += 0.15 if val.get("sum_check") else 0.0
-    score += 0.15 if val.get("ico_checksum") else 0.0
-    score += 0.10 if val.get("dic_format_and_in_text") else 0.0
-    score += 0.10 if val.get("variabilni_symbol") else 0.0
-    filled = sum(1 for k in CRITICAL_FIELDS if data.get(k))
-    score += 0.02 * filled
-    return round(max(0.0, min(0.99, score)), 2)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-def need_llm(data: dict, val: dict) -> bool:
-    missing = sum(1 for k in CRITICAL_FIELDS if not data.get(k))
-    bad = 0 if not val else (0 if val.get("sum_check") else 1) + (0 if val.get("ico_checksum") else 1)
-    return (missing >= 2) or (missing >= 1 and bad >= 1)
-
-def safe_merge(heur: dict, llm: dict, ocr_text: str) -> dict:
-    out = {**heur}
-    out.setdefault("dodavatel", {})
-    llm = llm or {}
-    llm_sup = llm.get("dodavatel") or {}
-
-    def ok_string(v: Any) -> bool:
-        return isinstance(v, str) and v and v.lower() in (ocr_text or "").lower()
-
-    for k in ["variabilni_symbol","datum_vystaveni","datum_splatnosti","duzp","castka_bez_dph","dph","castka_s_dph","mena","platba_zpusob","banka_prijemce","ucet_prijemce"]:
-        if not out.get(k) and (k in llm):
-            v = llm.get(k)
-            if isinstance(v, str):
-                if ok_string(v): out[k] = v
-            else:
-                out[k] = v
-
-    for k in ["nazev","ico","dic","adresa"]:
-        if not out["dodavatel"].get(k) and (k in llm_sup):
-            v = llm_sup.get(k)
-            if isinstance(v, str):
-                if ok_string(v): out["dodavatel"][k] = v
-            else:
-                out["dodavatel"][k] = v
-    return out
-
-@app.get("/")
-def home():
-    # Friendly landing: redirect to docs
-    return RedirectResponse(url="/docs")
+class ExtractResponse(BaseModel):
+    data: dict
+    method: str
+    validations: dict
 
 @app.get("/api/health")
 def health():
-    return {"ok": True}
+    return {"status": "ok"}
 
-@app.post("/api/extract")
-async def extract(file: UploadFile = File(...)):
-    raw = await file.read()
-    ocr_text = extract_text_from_file(raw, file.filename or "")
-    data = extract_fields_heuristic(ocr_text)
-    val = validate_extraction(data, ocr_text)
-    method = "heuristic"
+@app.post("/api/extract", response_model=ExtractResponse)
+async def extract(file: UploadFile = File(...), method: Optional[str] = Query("auto")):
+    try:
+        content = await file.read()
+        text = extract_text_from_file(filename=file.filename, data=content)
 
-    if need_llm(data, val) and llm_mod.llm_available():
-        llm_data = llm_mod.ask_llm(ocr_text) or {}
-        merged = safe_merge(data, llm_data, ocr_text)
-        merged_val = validate_extraction(merged, ocr_text)
-        if sum(1 for k in CRITICAL_FIELDS if merged.get(k)) > sum(1 for k in CRITICAL_FIELDS if data.get(k)):
-            data, val, method = merged, merged_val, "llm_fallback"
+        used_method = ""
+        result = None
 
-    data["confidence"] = compute_confidence(data, val)
-    return JSONResponse({"data": data, "method": method, "validations": val})
+        # 1) Template
+        if method in ["template", "auto"]:
+            tpl_res = extract_fields_template(text)
+            if tpl_res:
+                result = tpl_res
+                used_method = "template"
+
+        # 2) LLM
+        if result is None and (method == "llm" or (method == "auto" and llm_available())):
+            try:
+                result = extract_fields_llm(text)
+                used_method = "llm"
+            except Exception:
+                result = None
+
+        # 3) Heuristic fallback
+        if result is None:
+            result = extract_fields_heuristic(text)
+            used_method = "heuristic" if method != "llm" else "heuristic (fallback)"
+
+        # Postprocess: compute any missing related amounts
+        if isinstance(result, dict):
+            result = autofill_amounts(result)
+        else:
+            result = {}
+
+        validations = validate_extraction(result)
+        return ExtractResponse(data=result, method=used_method, validations=validations)
+    except Exception:
+        # Never fail hard; always return a safe payload so the frontend can proceed
+        return ExtractResponse(data={}, method="error", validations={})
+
+# -------- Export endpoint --------
+def _flatten_dict(d, prefix=""):
+    rows = []
+    for k, v in d.items():
+        key = f"{prefix}{k}" if not prefix else f"{prefix}.{k}"
+        if isinstance(v, dict):
+            rows.extend(_flatten_dict(v, key))
+        else:
+            rows.append((key, "" if v is None else v))
+    return rows
+
+def _to_txt(d: dict) -> bytes:
+    rows = _flatten_dict(d)
+    buf = io.StringIO()
+    for k, v in rows:
+        buf.write(f"{k}: {v}\n")
+    return buf.getvalue().encode("utf-8")
+
+def _to_csv(d: dict) -> bytes:
+    rows = _flatten_dict(d)
+    out = io.StringIO()
+    w = csv.writer(out)
+    w.writerow(["Key", "Value"])
+    for k, v in rows:
+        w.writerow([k, v])
+    return out.getvalue().encode("utf-8")
+
+def _to_xlsx(d: dict) -> bytes:
+    from openpyxl import Workbook
+    from openpyxl.utils import get_column_letter
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Invoice"
+    ws.append(["Key", "Value"])
+    for k, v in _flatten_dict(d):
+        ws.append([k, v])
+    # autosize
+    for col in [1, 2]:
+        max_len = 0
+        for cell in ws[get_column_letter(col)]:
+            val = str(cell.value) if cell.value is not None else ""
+            max_len = max(max_len, len(val))
+        ws.column_dimensions[get_column_letter(col)].width = min(max_len + 2, 80)
+    bio = io.BytesIO()
+    wb.save(bio)
+    bio.seek(0)
+    return bio.read()
+
+@app.post("/api/export")
+async def export_file(payload: dict = Body(...)):
+    fmt = (payload.get("format") or "json").lower()
+    data = payload.get("data") or {}
+    filename = payload.get("filename") or "invoice_export"
+    if fmt == "json":
+        content = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
+        media = "application/json"
+        ext = "json"
+    elif fmt == "txt":
+        content = _to_txt(data)
+        media = "text/plain"
+        ext = "txt"
+    elif fmt == "csv":
+        content = _to_csv(data)
+        media = "text/csv"
+        ext = "csv"
+    elif fmt == "xlsx":
+        content = _to_xlsx(data)
+        media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ext = "xlsx"
+    else:
+        return JSONResponse({"error": "Unsupported format"}, status_code=400)
+
+    headers = {"Content-Disposition": f'attachment; filename="{filename}.{ext}"'}
+    return StreamingResponse(io.BytesIO(content), media_type=media, headers=headers)
+
+# --- Serve frontend last ---
+from pathlib import Path as _Path
+_FRONTEND_DIR = str((_Path(__file__).resolve().parents[1] / "frontend").resolve())
+app.mount("/", StaticFiles(directory=_FRONTEND_DIR, html=True), name="frontend")
