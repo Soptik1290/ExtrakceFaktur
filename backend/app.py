@@ -60,6 +60,50 @@ async def extract(file: UploadFile = File(...), method: Optional[str] = Query("a
             except Exception:
                 result = None
 
+        # If LLM succeeded but left some fields empty, augment with heuristics
+        if result is not None and used_method.startswith("llm"):
+            try:
+                heur = extract_fields_heuristic(text)
+                if isinstance(heur, dict):
+                    # Merge only missing/empty fields from heuristics output
+                    def _is_empty(v):
+                        return v is None or (isinstance(v, str) and not v.strip())
+
+                    # Top-level simple fields to backfill
+                    for key in [
+                        "variabilni_symbol",
+                        "datum_vystaveni",
+                        "datum_splatnosti",
+                        "duzp",
+                        "castka_bez_dph",
+                        "dph",
+                        "castka_s_dph",
+                        "platba_zpusob",
+                        "banka_prijemce",
+                        "ucet_prijemce",
+                    ]:
+                        if (key in heur) and _is_empty(result.get(key)) and not _is_empty(heur.get(key)):
+                            result[key] = heur.get(key)
+
+                    # Currency: also replace if LLM produced an unknown token
+                    _known = {"CZK","EUR","USD","GBP","PLN","HUF","CHF","SEK","NOK","DKK","JPY","CNY","AUD","CAD"}
+                    cur = (result.get("mena") or "").strip().upper()
+                    if cur not in _known and not _is_empty(heur.get("mena")):
+                        result["mena"] = heur.get("mena")
+
+                    # Nested supplier dictionary
+                    llm_sup = result.get("dodavatel") or {}
+                    heur_sup = heur.get("dodavatel") or {}
+                    if isinstance(llm_sup, dict) and isinstance(heur_sup, dict):
+                        for k in ["nazev", "ico", "dic", "adresa"]:
+                            if _is_empty(llm_sup.get(k)) and not _is_empty(heur_sup.get(k)):
+                                llm_sup[k] = heur_sup.get(k)
+                        result["dodavatel"] = llm_sup
+                    used_method = "llm+heuristic"
+            except Exception:
+                # Never block extraction if augmentation fails
+                pass
+
         # 3) Heuristic fallback
         if result is None:
             result = extract_fields_heuristic(text)
