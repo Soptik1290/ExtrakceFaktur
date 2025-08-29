@@ -35,13 +35,9 @@ def _clean_lines(text: str):
     return [re.sub(r"\s+", " ", ln).strip() for ln in text.splitlines() if ln.strip()]
 
 def _detect_vs(text: str, lines):
-    vs = _find_label_value(lines, [r"\bvariab\w*\.?\s*symbol\b", r"\bVS\b", r"variable symbol", r"variabilní symbol", r"variabilni symbol"], r"\b(\d{6,12})\b", 5)
+    vs = _find_label_value(lines, [r"\bvariab\w* symbol\b", r"\bVS\b", r"variable symbol", r"variabilní symbol", r"variabilni symbol"], r"\b(\d{6,12})\b", 3)
     if vs:
         return re.sub(r"\D", "", vs)
-    # Try a nearby window search for label → number
-    near = pick_nearby(text, [r"variab\w*\.?\s*symbol", r"\bVS\b"], r"\b\d{6,12}\b", window=600)
-    if near:
-        return re.sub(r"\D", "", near)
     vs = _find_any(r"\bVS[:\s]+(\d{6,12})\b", "\n".join(lines))
     if vs:
         return vs
@@ -111,96 +107,18 @@ def _currency_near_amount(lines):
                 return sym_map.get(tok, tok.replace("KČ", "CZK"))
     return None
 
-def _extract_supplier(lines, joined):
-    """
-    Heuristically extract supplier block around IČO/DIČ labels.
-    Returns dict with keys: nazev, ico, dic, adresa.
-    """
-    # Find IČO and DIČ
-    ico = _find_label_value(
-        lines,
-        [r"\bIČO\b", r"\bICO\b", r"\bIČ\b"],
-        r"\b(\d{8})\b",
-        3,
-    )
-    dic = _find_label_value(
-        lines,
-        [r"\bDIČ\b", r"\bDIC\b", r"VAT\s*ID", r"VAT\s*No"],
-        r"\b(CZ\d{8,10}|[A-Z]{2}[A-Z0-9]{8,12})\b",
-        3,
-    )
-
-    # Locate index of IČO line to mine name/address around it
-    ico_idx = None
-    for i, ln in enumerate(lines):
-        if re.search(r"\b(IČO|ICO)\b", ln, re.I):
-            ico_idx = i
-            break
-
-    # Candidate lines near label (above are more likely to contain name/address)
-    ctx = []
-    if ico_idx is not None:
-        ctx = lines[max(0, ico_idx - 4): ico_idx + 2]
-    else:
-        # Fallback: search around DIČ
-        for i, ln in enumerate(lines):
-            if re.search(r"\b(DIČ|DIC)\b", ln, re.I):
-                ctx = lines[max(0, i - 4): i + 2]
-                break
-
-    name = None
-    address = None
-    for ln in ctx:
-        if re.search(r"\b(IČO|ICO|DIČ|DIC)\b", ln, re.I):
-            continue
-        # Prefer lines with s.r.o., a.s., spol., or two+ capitalized words
-        if name is None and (
-            re.search(r"\b(s\.r\.o\.|a\.s\.|spol\.|sro|s\. r\. o\.)\b", ln, re.I)
-            or re.search(r"^[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][^a-z]*[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]", ln)
-        ):
-            name = ln
-            continue
-        # Address-like line: has number or postal code
-        if address is None and (re.search(r"\b\d{1,4}\b", ln) or re.search(r"\b\d{3}\s?\d{2}\b", ln)):
-            address = ln
-
-    return {
-        "nazev": name,
-        "ico": ico,
-        "dic": dic,
-        "adresa": address,
-    }
-
 def extract_fields_heuristic(text: str) -> dict:
     lines = _clean_lines(text)
     joined = "\n".join(lines)
 
     vs = _detect_vs(joined, lines)
 
-    vyst = _find_label_value(
-        lines,
-        [r"datum\s*vyst", r"vystaven[íi]?", r"issue", r"datum\s*vystavení", r"datum\s*vystaveni", r"vyst\."],
-        DATE_PAT,
-        4,
-    ) or pick_nearby(joined, [r"datum\s*vyst", "vyst", "issue"], DATE_PAT)
-    splat = _find_label_value(
-        lines,
-        [r"splatnost", r"due\s*date", r"payment\s*due", r"datum\s*splatnosti", r"splat\."],
-        DATE_PAT,
-        4,
-    ) or pick_nearby(joined, ["splatnost", "due"], DATE_PAT)
-    duzp = _find_label_value(
-        lines,
-        [
-            r"\bduzp\b",
-            r"tax\s*point",
-            r"date of taxable",
-            r"datum\s*uskutecn[ěe]n[íi] zdanitelneho plneni",
-            r"datum\s*zdan\.?\s*pln\w+",
-        ],
-        DATE_PAT,
-        4,
-    ) or pick_nearby(joined, [r"duzp", r"zdan\.?\s*pln", r"tax point"], DATE_PAT)
+    vyst = _find_label_value(lines, [r"datum vyst", r"vystaven", r"issue", r"datum vystavení", r"datum vystaveni"], DATE_PAT, 3) \
+        or pick_nearby(joined, ["vyst", "issue", "vystavení", "vystaveni"], DATE_PAT)
+    splat = _find_label_value(lines, [r"splatnost", r"due date", r"payment due", r"datum splatnosti", r"datum splatnosti"], DATE_PAT, 3) \
+        or pick_nearby(joined, ["splatnost", "due", "splatnost"], DATE_PAT)
+    duzp = _find_label_value(lines, [r"duzp", r"tax point", r"date of taxable", r"datum uskutecnění zdanitelného plnění", r"datum uskutecneni zdanitelneho plneni"], DATE_PAT, 3) \
+        or pick_nearby(joined, ["duzp", r"tax point", "uskutecnění", "uskutecneni"], DATE_PAT)
 
     vyst = normalize_date(vyst); splat = normalize_date(splat); duzp = normalize_date(duzp)
 
@@ -282,7 +200,7 @@ def extract_fields_heuristic(text: str) -> dict:
         [r"\b(?:č[iy]slo\s*[\w]*\s*ú[čc]tu|cislo uctu|account number|iban)\b", r"cislo účtu", r"cislo uctu", r"číslo účtu", r"číslo uctu", r"čísla účtu", r"cisla uctu", r"čísla účtu", r"cisla uctu"],
         r"[:\s]*([0-9\- ]{1,20}/[0-9]{3,6}|[A-Z]{2}[0-9A-Z ]{12,34})", 3)
 
-    supplier = _extract_supplier(lines, joined)
+    supplier = {"nazev": None, "ico": None, "dic": None, "adresa": None}
 
     result = {
         "variabilni_symbol": vs,
