@@ -50,39 +50,6 @@ TEXT:
 -----
 """
 
-DATE_PAT = r"(?:\b\d{1,2}[.\-/ ]\d{1,2}[.\-/ ]\d{2,4}\b|\b\d{4}-\d{1,2}-\d{1,2}\b)"
-
-def _clean_lines(text: str):
-    return [re.sub(r"\s+", " ", ln).strip() for ln in text.splitlines() if ln.strip()]
-
-def _find_label_value(lines, label_keywords, value_regex, max_dist=2):
-    label_re = re.compile("|".join(label_keywords), re.I)
-    val_re = re.compile(value_regex)
-    for i, line in enumerate(lines):
-        if label_re.search(line):
-            window = "\n".join(lines[max(0, i - max_dist): i + max_dist + 1])
-            m = val_re.search(window)
-            if m:
-                return m.group(0)
-    return None
-
-def _dates_from_text(text: str) -> dict:
-    lines = _clean_lines(text)
-    joined = "\n".join(lines)
-    vyst = _find_label_value(lines, [r"datum vyst", r"vystaven", r"issue", r"datum vystavení", r"datum vystaveni"], DATE_PAT, 3)
-    splat = _find_label_value(lines, [r"splatnost", r"due date", r"payment due", r"datum splatnosti", r"datum splatnosti"], DATE_PAT, 3)
-    duzp = _find_label_value(lines, [
-        r"duzp", r"tax point", r"date of taxable",
-        r"datum uskutecnění zdanitelného plnění", r"datum uskutecneni zdanitelneho plneni",
-        r"zdanitelného plnění", r"zdanitelneho plneni", r"zdan\.\s*pln",
-        r"datum zdan\.?\s*pln", r"datum zdanitelneho plneni", r"datum zdanění plnění", r"datum zdaneni plneni"
-    ], DATE_PAT, 3)
-    return {
-        "datum_vystaveni": normalize_date(vyst),
-        "datum_splatnosti": normalize_date(splat),
-        "duzp": normalize_date(duzp),
-    }
-
 def extract_fields_llm(text: str) -> dict:
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
@@ -148,22 +115,6 @@ def extract_fields_llm(text: str) -> dict:
         data.setdefault(k, None)
     data.setdefault("confidence", 0.75)
     data.setdefault("variabilni_symbol", None)
-
-    # Localized fallback: if any date missing, try to find it near labels in OCR text
-    if any(data.get(k) is None for k in ["datum_vystaveni", "datum_splatnosti", "duzp"]):
-        fb = _dates_from_text(text)
-        filled_any = False
-        for k in ["datum_vystaveni", "datum_splatnosti", "duzp"]:
-            if data.get(k) is None and fb.get(k) is not None:
-                data[k] = fb[k]
-                filled_any = True
-        if filled_any:
-            # slightly reduce confidence to reflect fallback
-            try:
-                data["confidence"] = max(0.6, float(data.get("confidence") or 0.75) - 0.05)
-            except Exception:
-                data["confidence"] = 0.7
     return data
-
 
 
