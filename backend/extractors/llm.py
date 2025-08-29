@@ -137,47 +137,72 @@ def extract_fields_llm(text: str) -> dict:
     data = json.loads(raw)
 
     # Enhanced date extraction - try to find dates even if LLM missed them
+    # First, let's try to find ALL dates in the text and use them strategically
+    all_date_patterns = [
+        r'\b(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})\b',  # DD.MM.YYYY or DD/MM/YYYY
+        r'\b(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})\b',  # YYYY-MM-DD or YYYY/MM/DD
+        r'\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b',          # DD.MM.YYYY specifically
+        r'\b(\d{4})-(\d{1,2})-(\d{1,2})\b',            # YYYY-MM-DD specifically
+    ]
+    
+    found_dates = []
+    for pattern in all_date_patterns:
+        matches = re.findall(pattern, text)
+        for match in matches:
+            try:
+                if len(match[0]) == 4:  # YYYY format
+                    date_str = f"{match[0]}-{match[1].zfill(2)}-{match[2].zfill(2)}"
+                else:  # DD.MM.YYYY format
+                    date_str = f"{match[2]}-{match[1].zfill(2)}-{match[0].zfill(2)}"
+                
+                normalized = normalize_date(date_str)
+                if normalized and normalized not in found_dates:
+                    found_dates.append(normalized)
+            except:
+                continue
+    
+    # If still no dates found, try even more aggressive patterns
+    if not found_dates:
+        # Look for any 4-digit year and try to find nearby numbers that could be dates
+        year_matches = re.findall(r'\b(202[0-9])\b', text)
+        if year_matches:
+            # Try to find dates around the year
+            for year in year_matches:
+                # Look for patterns like "21 04 2023" or "21.4.2023"
+                loose_patterns = [
+                    rf'\b(\d{{1,2}})\s*[.\-/]?\s*(\d{{1,2}})\s*[.\-/]?\s*{year}\b',
+                    rf'\b{year}\s*[.\-/]?\s*(\d{{1,2}})\s*[.\-/]?\s*(\d{{1,2}})\b',
+                ]
+                for loose_pattern in loose_patterns:
+                    loose_matches = re.findall(loose_pattern, text)
+                    for match in loose_matches:
+                        try:
+                            if len(match) == 2:  # Year was captured separately
+                                if loose_pattern.startswith(rf'\b(\d{{1,2}})'):  # DD MM YYYY
+                                    date_str = f"{year}-{match[1].zfill(2)}-{match[0].zfill(2)}"
+                                else:  # YYYY MM DD
+                                    date_str = f"{year}-{match[0].zfill(2)}-{match[1].zfill(2)}"
+                                normalized = normalize_date(date_str)
+                                if normalized and normalized not in found_dates:
+                                    found_dates.append(normalized)
+                        except:
+                            continue
+    
+    # Now assign dates to fields
     for k in ["datum_vystaveni","datum_splatnosti","duzp"]:
         date_val = data.get(k)
-        if not date_val:
-            # Try to extract dates from text using patterns
-            date_patterns = [
-                r'\b(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})\b',  # DD.MM.YYYY
-                r'\b(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})\b',  # YYYY-MM-DD
-            ]
-            
-            # For this specific case, try to find any date in the text
-            for pattern in date_patterns:
-                matches = re.findall(pattern, text)
-                if matches:
-                    # Use first found date as fallback for missing dates
-                    match = matches[0]
-                    if len(match[0]) == 4:  # YYYY format
-                        try:
-                            date_str = f"{match[0]}-{match[1].zfill(2)}-{match[2].zfill(2)}"
-                            normalized = normalize_date(date_str)
-                            if normalized:
-                                data[k] = normalized
-                                # If we found one date, use it for DUZP as well if missing
-                                if k == "datum_vystaveni" and not data.get("duzp"):
-                                    data["duzp"] = normalized
-                                break
-                        except:
-                            continue
-                    else:  # DD.MM.YYYY format
-                        try:
-                            date_str = f"{match[2]}-{match[1].zfill(2)}-{match[0].zfill(2)}"
-                            normalized = normalize_date(date_str)
-                            if normalized:
-                                data[k] = normalized
-                                # If we found one date, use it for DUZP as well if missing
-                                if k == "datum_vystaveni" and not data.get("duzp"):
-                                    data["duzp"] = normalized
-                                break
-                        except:
-                            continue
+        if not date_val and found_dates:
+            if k == "datum_vystaveni":
+                # Use first found date for issue date
+                data[k] = found_dates[0]
+            elif k == "datum_splatnosti" and len(found_dates) > 1:
+                # Use second date for due date if available
+                data[k] = found_dates[1]
+            elif k == "duzp":
+                # Use same as issue date for tax point
+                data[k] = data.get("datum_vystaveni") or (found_dates[0] if found_dates else None)
         else:
-            data[k] = normalize_date(date_val)
+            data[k] = normalize_date(date_val) if date_val else None
     def _num(v):
         if v is None: return None
         if isinstance(v, (int,float)): return float(v)
@@ -227,10 +252,14 @@ def extract_fields_llm(text: str) -> dict:
         dph is not None and abs(float(dph)) < 0.01):
         data["dph"] = None
     
-    # Fix Czech characters in text fields
+    # Fix Czech characters in text fields and handle missing payment method
     for k in ["platba_zpusob", "banka_prijemce"]:
         if data.get(k):
             data[k] = fix_czech_chars(data[k])
+    
+    # If payment method is missing but we have bank account, assume bank transfer
+    if not data.get("platba_zpusob") and data.get("ucet_prijemce"):
+        data["platba_zpusob"] = "peněžní převod"
     
     # Validate IČO and adjust confidence if invalid
     ico = data.get("dodavatel", {}).get("ico")
@@ -279,7 +308,24 @@ def extract_fields_llm(text: str) -> dict:
     
     for k in ["mena","platba_zpusob","banka_prijemce","ucet_prijemce"]:
         data.setdefault(k, None)
-    data.setdefault("confidence", 0.75)
+    
+    # Boost confidence if we have good data extraction
+    current_confidence = data.get("confidence", 0.75)
+    
+    # Check if we have key data fields filled
+    has_dates = bool(data.get("datum_vystaveni") and data.get("datum_splatnosti"))
+    has_amounts = bool(data.get("castka_bez_dph") and data.get("castka_s_dph"))
+    has_supplier = bool(data.get("dodavatel", {}).get("nazev"))
+    has_payment_info = bool(data.get("platba_zpusob") and data.get("ucet_prijemce"))
+    
+    # Boost confidence based on completeness
+    completeness_score = sum([has_dates, has_amounts, has_supplier, has_payment_info])
+    if completeness_score >= 3:
+        current_confidence = min(0.95, current_confidence + 0.3)
+    elif completeness_score >= 2:
+        current_confidence = min(0.85, current_confidence + 0.2)
+    
+    data["confidence"] = current_confidence
     data.setdefault("variabilni_symbol", None)
     return data
 

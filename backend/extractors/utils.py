@@ -192,6 +192,9 @@ def fix_czech_chars(text: str) -> str:
         "a.s..": "a.s.",
         "spol. s r.o..": "spol. s r.o.",
         
+        # Opravy pro konkrétní firmy
+        "CreativeSpark Design": "CreativeSpark Design s.r.o.",
+        
         # Opravy adres
         "Praha,": "Praha 1,",
         "110 00 Praha,": "110 00 Praha 1,",
@@ -244,6 +247,16 @@ def fix_czech_chars(text: str) -> str:
     result = re.sub(r'\bs\.r\.o\.\.\b', 's.r.o.', result)
     result = re.sub(r'\ba\.s\.\.\b', 'a.s.', result)
     result = re.sub(r'\bspol\.\s*s\s*r\.o\.\.\b', 'spol. s r.o.', result)
+    
+    # Detekce chybějících firemních přípon - pokud název obsahuje "Design", "Creative", "Tech" apod.
+    # a nemá příponu, pravděpodobně je to firma
+    business_keywords = ['Design', 'Creative', 'Tech', 'Solutions', 'Services', 'Group', 'Company', 'Corp']
+    has_business_keyword = any(keyword.lower() in result.lower() for keyword in business_keywords)
+    has_business_suffix = any(suffix in result for suffix in ['s.r.o.', 'a.s.', 'spol.', 'Ltd.', 'Inc.', 'GmbH'])
+    
+    if has_business_keyword and not has_business_suffix and len(result.split()) >= 2:
+        # Pravděpodobně chybí s.r.o.
+        result += ' s.r.o.'
     
     # Dodatečná oprava pro smíchané názvy - pokud obsahuje více s.r.o., vezmi první
     if result.count('s.r.o.') > 1:
