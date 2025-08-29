@@ -164,6 +164,11 @@ def fix_czech_chars(text: str) -> str:
         
         # Běžné chyby v názvech firem
         "Ooberate": "s.r.o.",
+        "Oaberatel": "s.r.o.",
+        "S.r.0.": "s.r.o.",
+        "S.r.o": "s.r.o.",
+        "s.r.0.": "s.r.o.",
+        "s.r.o": "s.r.o.",
         
         # Běžné chyby v měnách
         "Kc": "Kč",
@@ -183,5 +188,12 @@ def fix_czech_chars(text: str) -> str:
     result = re.sub(r'\bNovak\b', 'Novák', result)
     result = re.sub(r'\bCekova\b', 'peněžní převod', result)
     result = re.sub(r'\bOoberate\b', 's.r.o.', result)
+    result = re.sub(r'\bOaberatel\b', 's.r.o.', result)
+    result = re.sub(r'\bS\.r\.0\.\b', 's.r.o.', result)
+    
+    # Dodatečná oprava pro smíchané názvy - pokud obsahuje více s.r.o., vezmi první
+    if result.count('s.r.o.') > 1:
+        parts = result.split('s.r.o.')
+        result = parts[0] + 's.r.o.' + ' '.join(parts[1:]).strip()  # Spoj zbylé, ale priorizuj první
     
     return result

@@ -58,6 +58,7 @@ def _extract_supplier(lines):
     - Find all occurrences of IČO/DIČ and build small windows around them
     - Prefer a window explicitly labelled 'dodavatel' and avoid 'odběratel'
     - Otherwise, prefer the window that contains DIČ starting with 'CZ'
+    - Prefer blocks closer to the top of the document
     - From the chosen window, infer name (a line before), IČO, DIČ and an address line
     """
     ico_pat = re.compile(r"I[ČC]O\s*[:#-]?\s*(\d{8})", re.I)
@@ -81,6 +82,8 @@ def _extract_supplier(lines):
             label_score -= 3
         if re.search(r"\bCZ\s?\d{8,12}\b", block_text):
             label_score += 2
+        # Add position score: prefer earlier in document
+        position_score = -idx  # Smaller index (earlier) gives higher score
 
         ico_m = ico_pat.search(block_text)
         dic_m = dic_pat.search(block_text)
@@ -105,13 +108,13 @@ def _extract_supplier(lines):
                     address = ln
                     break
 
-        candidates.append((label_score, start, end, {"nazev": name, "ico": ico, "dic": dic, "adresa": address}))
+        candidates.append((label_score, position_score, start, end, {"nazev": name, "ico": ico, "dic": dic, "adresa": address}))
 
     if not candidates:
         return {"nazev": None, "ico": None, "dic": None, "adresa": None}
 
-    # Pick the best-scoring candidate
-    best = sorted(candidates, key=lambda t: t[0], reverse=True)[0][3]
+    # Pick the best-scoring candidate: first by label_score desc, then by position_score desc (earlier)
+    best = sorted(candidates, key=lambda t: (t[0], t[1]), reverse=True)[0][4]
     return best
 
 def _amounts_from_text(text: str):

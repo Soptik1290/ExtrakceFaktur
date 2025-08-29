@@ -46,16 +46,17 @@ def _otsu_threshold(gray: Image.Image) -> int:
 def _preprocess_for_ocr(img: Image.Image) -> tuple[Image.Image, Image.Image]:
     # Convert to grayscale
     g = img.convert("L")
-    # Upscale small images to improve text size for Tesseract
+    # Upscale small images to improve text size for Tesseract, but limit scale to 3 to avoid slowness
     min_dim = min(g.size)
     if min_dim < 1000:
-        scale = max(2, min(4, (1000 + min_dim - 1) // min_dim))
+        scale = min(3, max(1, (1000 + min_dim - 1) // min_dim))
         new_size = (g.size[0] * scale, g.size[1] * scale)
         g = g.resize(new_size, _resampling())
-    # Autocontrast and slight sharpening
-    g = ImageOps.autocontrast(g)
-    g = ImageEnhance.Sharpness(g).enhance(1.3)
-    g = g.filter(ImageFilter.UnsharpMask(radius=1.2, percent=150, threshold=3))
+    # Autocontrast and slight sharpening only if image is not too large
+    if min_dim < 2000:
+        g = ImageOps.autocontrast(g)
+        g = ImageEnhance.Sharpness(g).enhance(1.3)
+        g = g.filter(ImageFilter.UnsharpMask(radius=1.2, percent=150, threshold=3))
     # Binarize using Otsu
     thr = _otsu_threshold(g)
     b = g.point(lambda x: 255 if x > thr else 0, mode='1').convert('L')

@@ -31,7 +31,7 @@ Jsi extrakční AI pro faktury (CZ/EN). Vrať POUZE JSON dle schématu:
 }}
 
 Pravidla:
-- Datumy normalizuj na YYYY-MM-DD.
+- Datumy normalizuj na YYYY-MM-DD. Hledej datums blízko klíčových slov jako 'Vystaveno', 'Splatnost', 'DUZP' nebo 'Tax point date'.
 - Částky vracej jako čísla (pokud lze), jinak string.
 - Číslo účtu může být ve formátu '123-123456789/0100', '2171532/0800', IBAN nebo BIC – vrať jak je na faktuře.
 - Pokud něco chybí, dej null a adekvátně sniž confidence.
@@ -39,11 +39,13 @@ Pravidla:
 - Českou diakritiku můžeš porovnat s Českou databází jmen a názvů
 - Pro české faktury: měna "Kč" = "CZK".
 - Částky mohou být ve formátu "44 413,00" nebo "44413.00" - normalizuj na číslo.
-- IČO je 8místné číslo, DIČ začíná "CZ" + 8-10 číslic.
+- IČO je 8místné číslo, ověř checksum (algoritmus: vážený součet prvních 7 číslic s vahami 8-2, modulo 11 určuje poslední číslo).
+- DIČ začíná "CZ" + 8-10 číslic.
 - Variabilní symbol je obvykle číslo nebo text do 12 znaků.
 - Platební metody: "peněžní převod", "bankovní převod", "hotovost", "karta" - použij přesný text z faktury.
 - Částky bez DPH a s DPH musí sedět s celkovou částkou - zkontroluj matematicky.
 - Adresy obsahují: ulice, číslo, PSČ, město, stát - zachovej kompletní formát.
+- Pro dodavatele: Identifikuj pouze jednoho hlavního dodavatele, obvykle v hlavičce faktury. Nepoužívej smíchané názvy z různých částí.
 
 TEXT:
 -----
@@ -117,5 +119,4 @@ def extract_fields_llm(text: str) -> dict:
     data.setdefault("confidence", 0.75)
     data.setdefault("variabilni_symbol", None)
     return data
-
 
