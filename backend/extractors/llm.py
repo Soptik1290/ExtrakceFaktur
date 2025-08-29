@@ -128,8 +128,23 @@ def extract_fields_llm(text: str) -> dict:
         "adresa": fix_czech_chars(supplier.get("adresa")),
     }
     
-    # Normalize currency - convert "Kč" to "CZK"
-    if data.get("mena") == "Kč":
+    # Normalize currency tokens frequently misread by OCR/LLM
+    cur_raw = (data.get("mena") or "").strip()
+    cur_norm = cur_raw.upper()
+    replacements = {
+        "KČ": "CZK",
+        "KC": "CZK",
+        "Kc": "CZK",
+        "KE": "CZK",  # common OCR slip where 'Č' -> 'E'
+        "KČE": "CZK",
+        "CZK": "CZK",
+        "€": "EUR",
+        "$": "USD",
+        "£": "GBP",
+    }
+    if cur_norm in replacements:
+        data["mena"] = replacements[cur_norm]
+    elif cur_raw == "Kč":
         data["mena"] = "CZK"
     
     # Normalize amounts - ensure they are numbers
