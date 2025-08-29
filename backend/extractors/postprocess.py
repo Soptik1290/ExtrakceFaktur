@@ -23,7 +23,12 @@ def autofill_amounts(data: dict) -> dict:
         dph = _round2(sdp - bez)
         if dph is not None and dph < 0 and abs(dph) < 0.03:
             dph = 0.0
-        computed["dph"] = True
+        
+        # Special case: if bez_dph == s_dph, this suggests VAT-exempt invoice
+        if bez is not None and sdp is not None and abs(float(bez) - float(sdp)) < 0.01:
+            dph = None  # Don't compute DPH for VAT-exempt invoices
+        else:
+            computed["dph"] = True
 
     # 2) S − DPH → Bez
     if sdp is not None and dph is not None and bez is None:

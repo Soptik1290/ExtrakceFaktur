@@ -240,6 +240,11 @@ def fix_czech_chars(text: str) -> str:
     result = re.sub(r'\bOaberatel\b', 's.r.o.', result)
     result = re.sub(r'\bS\.r\.0\.\b', 's.r.o.', result)
     
+    # Oprava nadbytečných teček v názvech firem
+    result = re.sub(r'\bs\.r\.o\.\.\b', 's.r.o.', result)
+    result = re.sub(r'\ba\.s\.\.\b', 'a.s.', result)
+    result = re.sub(r'\bspol\.\s*s\s*r\.o\.\.\b', 'spol. s r.o.', result)
+    
     # Dodatečná oprava pro smíchané názvy - pokud obsahuje více s.r.o., vezmi první
     if result.count('s.r.o.') > 1:
         parts = result.split('s.r.o.')

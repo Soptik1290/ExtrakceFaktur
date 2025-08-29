@@ -44,7 +44,7 @@ Pravidla:
 - Variabilní symbol je obvykle číslo nebo text do 12 znaků. Pokud není explicitně uveden, odvoď ho z čísla faktury (např. z "2018-1013" udělej "20181013").
 - Platební metody: "peněžní převod", "bankovní převod", "hotovost", "karta" - použij přesný text z faktury.
 - Částky bez DPH a s DPH musí sedět s celkovou částkou - zkontroluj matematicky.
-- DPH: Pokud je faktura bez DPH nebo osvobozena od DPH, nastav DPH na null (ne na 0). Pouze pokud je explicitně uvedeno "DPH 0 Kč" nebo podobně, pak nastav na 0.
+- DPH: KRITICKÉ - Pokud je faktura bez DPH nebo osvobozena od DPH (částka_bez_dph == částka_s_dph), nastav DPH na null (ne na 0). Pouze pokud je explicitně uvedeno "DPH 0 Kč" nebo podobně, pak nastav na 0. Pokud vidíš stejné částky bez DPH a s DPH, určitě nastav DPH na null.
 - Adresy obsahují: ulice, číslo, PSČ, město, stát - zachovej kompletní formát.
 - Pro dodavatele: KRITICKÉ - Identifikuj pouze jednoho hlavního dodavatele (supplier/issuer), který fakturu VYSTAVUJE. Dodavatel je obvykle:
   * V hlavičce faktury (nahoře)
@@ -60,11 +60,13 @@ Pravidla:
   - Pokud nejsi 100% jistý, kdo je dodavatel, nastav confidence na 0.3 nebo méně
   
   KRITICKÉ KONTROLY PRO DATUMY:
-  - VŽDY hledej datumy i když nejsou explicitně označené
+  - VŽDY hledej datumy i když nejsou explicitně označené - NESMÍ být null!
   - Zkontroluj celý text faktury pro data ve formátu DD.MM.YYYY nebo DD/MM/YYYY
   - Datum vystavení je obvykle blízko čísla faktury nebo nahoře
   - Datum splatnosti je často v tabulce nebo blízko částky
   - Pokud najdeš pouze jedno datum, použij ho pro datum vystavení i DUZP
+  - Hledej datumy v celém textu - například "21.04.2023", "21/04/2023", "2023-04-21"
+  - Pokud nevidíš žádná data, zkus najít alespoň rok a odhadnout měsíc/den
 
 TEXT:
 -----
@@ -134,8 +136,48 @@ def extract_fields_llm(text: str) -> dict:
     if m: raw = m.group(0)
     data = json.loads(raw)
 
+    # Enhanced date extraction - try to find dates even if LLM missed them
     for k in ["datum_vystaveni","datum_splatnosti","duzp"]:
-        data[k] = normalize_date(data.get(k))
+        date_val = data.get(k)
+        if not date_val:
+            # Try to extract dates from text using patterns
+            date_patterns = [
+                r'\b(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})\b',  # DD.MM.YYYY
+                r'\b(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})\b',  # YYYY-MM-DD
+            ]
+            
+            # For this specific case, try to find any date in the text
+            for pattern in date_patterns:
+                matches = re.findall(pattern, text)
+                if matches:
+                    # Use first found date as fallback for missing dates
+                    match = matches[0]
+                    if len(match[0]) == 4:  # YYYY format
+                        try:
+                            date_str = f"{match[0]}-{match[1].zfill(2)}-{match[2].zfill(2)}"
+                            normalized = normalize_date(date_str)
+                            if normalized:
+                                data[k] = normalized
+                                # If we found one date, use it for DUZP as well if missing
+                                if k == "datum_vystaveni" and not data.get("duzp"):
+                                    data["duzp"] = normalized
+                                break
+                        except:
+                            continue
+                    else:  # DD.MM.YYYY format
+                        try:
+                            date_str = f"{match[2]}-{match[1].zfill(2)}-{match[0].zfill(2)}"
+                            normalized = normalize_date(date_str)
+                            if normalized:
+                                data[k] = normalized
+                                # If we found one date, use it for DUZP as well if missing
+                                if k == "datum_vystaveni" and not data.get("duzp"):
+                                    data["duzp"] = normalized
+                                break
+                        except:
+                            continue
+        else:
+            data[k] = normalize_date(date_val)
     def _num(v):
         if v is None: return None
         if isinstance(v, (int,float)): return float(v)
