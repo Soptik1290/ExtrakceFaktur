@@ -174,6 +174,8 @@ def fix_czech_chars(text: str) -> str:
         # Opravy pro adresy
         "Alej Svobody": "Alej Svobody",  # Toto je správně
         "Dopravní": "Dopravní",  # Toto je správně
+        "Jatetn{": "Jatetní",  # OCR chyba v Alza adrese
+        "Jatetn{ 33a": "Jatetní 33a",  # OCR chyba v Alza adrese
         
         # Běžné chyby v bankovních názvech
         "Ceska sporitelna": "Česká spořitelna",
@@ -182,6 +184,9 @@ def fix_czech_chars(text: str) -> str:
         "Ceska spofitelna, a.s.": "Česká spořitelna, a.s.",  # OCR chyba
         "Ceska narodni banka": "Česká národní banka",
         "Ceska narodni banka, a.s.": "Česká národní banka, a.s.",
+        "CSOB, ass.": "ČSOB, a.s.",  # OCR chyba
+        "CSOB, a.s.": "ČSOB, a.s.",  # Správné
+        "CSOB": "ČSOB, a.s.",
         
         # Běžné chyby v platebních metodách
         "prevodem": "převodem",
