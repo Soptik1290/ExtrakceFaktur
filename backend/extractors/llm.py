@@ -1,6 +1,6 @@
 
 import os, json, re
-from .utils import normalize_date, parse_amount, fix_czech_chars, pick_nearby
+from .utils import normalize_date, parse_amount, fix_czech_chars
 try:
     from openai import OpenAI
 except Exception:
@@ -50,41 +50,6 @@ TEXT:
 -----
 """
 
-def _total_from_text_fallback(text: str):
-    """
-    Try to read the grand-total amount straight from the invoice text
-    around common Czech/EN labels. This is used to correct occasional
-    LLM off-by-a-digit mistakes (e.g. 65000 -> 165000).
-    """
-    if not text:
-        return None
-    amount_pattern = r"\b\d{1,3}(?:[ \u00A0]\d{3})*(?:[,.]\d{2})\b|\b\d{1,3}(?:[ \u00A0]\d{3})+\b"
-    keywords = [
-        r"k\s*[úu]hrad[ěe]", r"celkem\s*k\s*[úu]hrad[ěe]", r"celkem", r"amount due", r"grand total", r"\btotal\b", r"celkov[aá]\s*\u010d[aá]stka|celkova\s*castka"
-    ]
-    # 1) Try nearby-window search with a generous window
-    hit = pick_nearby(text, keywords, amount_pattern, window=800)
-    if hit:
-        val = parse_amount(hit)
-        if val is not None:
-            return val
-    # 2) Try direct label→amount regex over entire text
-    patterns = [
-        r"(?:k\s*[úu]hrad[ěe].{0,120}?)(\d{1,3}(?:[ \u00A0]\d{3})*(?:[,.]\d{2})|\d{1,3}(?:[ \u00A0]\d{3})+)",
-        r"(?:celkem\s*k\s*[úu]hrad[ěe].{0,120}?)(\d{1,3}(?:[ \u00A0]\d{3})*(?:[,.]\d{2})|\d{1,3}(?:[ \u00A0]\d{3})+)",
-        r"(?:celkem[^\n\r]{0,120}?)(\d{1,3}(?:[ \u00A0]\d{3})*(?:[,.]\d{2})|\d{1,3}(?:[ \u00A0]\d{3})+)"
-    ]
-    candidates = []
-    for pat in patterns:
-        for m in re.finditer(pat, text, re.I):
-            candidates.append(m.group(1))
-    if candidates:
-        numbers = [parse_amount(c) for c in candidates if parse_amount(c) is not None]
-        if numbers:
-            # Heuristic: choose the largest candidate (grand totals are usually max)
-            return max(numbers)
-    return None
-
 def extract_fields_llm(text: str) -> dict:
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
@@ -128,23 +93,8 @@ def extract_fields_llm(text: str) -> dict:
         "adresa": fix_czech_chars(supplier.get("adresa")),
     }
     
-    # Normalize currency tokens frequently misread by OCR/LLM
-    cur_raw = (data.get("mena") or "").strip()
-    cur_norm = cur_raw.upper()
-    replacements = {
-        "KČ": "CZK",
-        "KC": "CZK",
-        "Kc": "CZK",
-        "KE": "CZK",  # common OCR slip where 'Č' -> 'E'
-        "KČE": "CZK",
-        "CZK": "CZK",
-        "€": "EUR",
-        "$": "USD",
-        "£": "GBP",
-    }
-    if cur_norm in replacements:
-        data["mena"] = replacements[cur_norm]
-    elif cur_raw == "Kč":
+    # Normalize currency - convert "Kč" to "CZK"
+    if data.get("mena") == "Kč":
         data["mena"] = "CZK"
     
     # Normalize amounts - ensure they are numbers
@@ -165,21 +115,7 @@ def extract_fields_llm(text: str) -> dict:
         data.setdefault(k, None)
     data.setdefault("confidence", 0.75)
     data.setdefault("variabilni_symbol", None)
-
-    # Cross-check the total against a regex-based read from the raw text.
-    # If they differ notably (> 1 CZK), trust the direct text read.
-    try:
-        text_total = _total_from_text_fallback(text)
-        if text_total is not None:
-            cur_total = data.get("castka_s_dph")
-            if cur_total is None or abs(float(cur_total) - float(text_total)) > 1.0:
-                fixed_total = float(text_total)
-                data["castka_s_dph"] = fixed_total
-                # If VAT is zero or missing, mirror total into bez DPH
-                if data.get("dph") in [None, 0, 0.0]:
-                    data["dph"] = 0.0
-                    data["castka_bez_dph"] = fixed_total
-    except Exception:
-        # Never let a fallback correction break extraction
-        pass
     return data
+
+
+
