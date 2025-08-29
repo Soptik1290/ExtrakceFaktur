@@ -60,10 +60,41 @@ async def extract(file: UploadFile = File(...), method: Optional[str] = Query("a
             except Exception:
                 result = None
 
-        # 3) Heuristic fallback
+        # 3) Heuristic fallback or completion
         if result is None:
             result = extract_fields_heuristic(text)
             used_method = "heuristic" if method != "llm" else "heuristic (fallback)"
+        else:
+            # If LLM returned but some key info is missing, try to complement from heuristics
+            try:
+                hres = extract_fields_heuristic(text)
+                if isinstance(hres, dict):
+                    # Fill scalar fields if missing
+                    for k in [
+                        "variabilni_symbol",
+                        "datum_vystaveni",
+                        "datum_splatnosti",
+                        "duzp",
+                        "mena",
+                        "platba_zpusob",
+                        "banka_prijemce",
+                        "ucet_prijemce",
+                    ]:
+                        if result.get(k) in (None, "") and hres.get(k) not in (None, ""):
+                            result[k] = hres.get(k)
+                    # Merge supplier subfields
+                    sup = result.get("dodavatel") or {}
+                    hsup = hres.get("dodavatel") or {}
+                    if not isinstance(sup, dict):
+                        sup = {"nazev": None, "ico": None, "dic": None, "adresa": None}
+                    for sk in ["nazev", "ico", "dic", "adresa"]:
+                        if sup.get(sk) in (None, "") and hsup.get(sk) not in (None, ""):
+                            sup[sk] = hsup.get(sk)
+                    result["dodavatel"] = sup
+                    # Mark method hybrid if anything was complemented
+                    used_method = used_method if used_method != "llm" else "llm+heuristic"
+            except Exception:
+                pass
 
         # Postprocess: compute any missing related amounts
         if isinstance(result, dict):
