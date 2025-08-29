@@ -11,7 +11,7 @@ def llm_available() -> bool:
 
 def _prompt(text: str) -> str:
     return f"""
-Jsi extrakční AI pro faktury (CZ/EN). Vrať POUZE JSON dle schématu:
+Jsi extrakční AI pro české faktury. Vrať POUZE JSON dle schématu:
 {{
   "variabilni_symbol": "string|null",
   "datum_vystaveni": "YYYY-MM-DD|null",
@@ -30,19 +30,36 @@ Jsi extrakční AI pro faktury (CZ/EN). Vrať POUZE JSON dle schématu:
   "confidence": 0.0
 }}
 
-Pravidla:
-- Datumy normalizuj na YYYY-MM-DD.
-- Částky vracej jako čísla (pokud lze), jinak string.
-- Číslo účtu může být ve formátu '123-123456789/0100', '2171532/0800', IBAN nebo BIC – vrať jak je na faktuře.
-- Pokud něco chybí, dej null a adekvátně sniž confidence.
-- ZACHOVEJ českou diakritiku (ěščřžýáíéůúňďť) v názvech a adresách.
-- Pro české faktury: měna "Kč" = "CZK".
-- Částky mohou být ve formátu "44 413,00" nebo "44413.00" - normalizuj na číslo.
-- IČO je 8místné číslo, DIČ začíná "CZ" + 8-10 číslic.
-- Variabilní symbol je obvykle číslo nebo text do 12 znaků.
-- Platební metody: "peněžní převod", "bankovní převod", "hotovost", "karta" - použij přesný text z faktury.
-- Částky bez DPH a s DPH musí sedět s celkovou částkou - zkontroluj matematicky.
-- Adresy obsahují: ulice, číslo, PSČ, město, stát - zachovej kompletní formát.
+DŮLEŽITÁ PRAVIDLA PRO ČESKÉ FAKTURY:
+1. DATUMY - HLEDEJ TYTO POLÍČKA:
+   - "Datum vystavení" nebo "Datum vydání" = datum_vystaveni
+   - "Datum splatnosti" nebo "Datum úhrady" = datum_splatnosti  
+   - "Datum zdanitelného plnění" nebo "DUZP" = duzp
+   - Datumy jsou ve formátu DD.MM.YYYY - převeď na YYYY-MM-DD
+
+2. ADRESY - ROZLIŠUJ DODAVATELE A ODBĚRATELE:
+   - Dodavatel (vystavitel faktury) = horní část faktury
+   - Odběratel (příjemce faktury) = spodní část faktury
+   - Adresa dodavatele = pole "dodavatel.adresa"
+   - NIKDY nemíchej adresy dodavatele a odběratele
+
+3. NÁZEV DODAVATELE:
+   - Pouze název společnosti, která vystavuje fakturu
+   - NIKDY nemíchej s názvem odběratele
+
+4. FORMÁT DAT:
+   - České datumy: 21.4.2023 → 2023-04-21
+   - České datumy: 5.5.2023 → 2023-05-05
+   - Pokud je měsíc jednociferný, doplň 0
+
+5. DALŠÍ PRAVIDLA:
+   - Částky normalizuj na čísla (44 413,00 → 44413.00)
+   - Měna "Kč" = "CZK"
+   - IČO je 8místné číslo
+   - DIČ začíná "CZ" + 8-10 číslic
+   - Variabilní symbol je obvykle číslo faktury
+   - Platební metody: "peněžní převod", "bankovní převod", "hotovost"
+   - Adresy obsahují: ulice, číslo, PSČ, město, stát
 
 TEXT:
 -----

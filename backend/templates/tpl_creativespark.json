@@ -1,0 +1,35 @@
+{
+  "name": "CreativeSpark Design s.r.o. (CZ)",
+  "required_keywords": [
+    "CreativeSpark Design s.r.o.",
+    "FAKTURA"
+  ],
+  "optional_keywords": [
+    "Variabilní symbol",
+    "Datum vystavení",
+    "Datum splatnosti",
+    "DUZP"
+  ],
+  "fields": {
+    "variabilni_symbol": "Variabiln[íi]\\s*symbol[:\\s]+(\\d{6,12})",
+    "datum_vystaveni": "(?:Datum\\s*vystaven[íi]|Vystaven[íi])[:\\s]+([0-9.\\-/ ]{8,10})",
+    "datum_splatnosti": "(?:Datum\\s*splatnosti|Splatnost)[:\\s]+([0-9.\\-/ ]{8,10})",
+    "duzp": "(?:Datum\\s*zdanitelného\\s*plnění|Datum\\s*zdanitelneho\\s*plneni|DUZP)[:\\s]+([0-9.\\-/ ]{8,10})",
+    "castka_s_dph": "Celkem[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)",
+    "castka_bez_dph": "Celkem[:\\s]+([0-9 \\u00A0.,]+)\\s*(?:Kč|CZK)",
+    "dph": "0\\s*%[^\\n]*?\\b([0-9 \\u00A0.,]+)\\b",
+    "dodavatel_nazev": "(CreativeSpark\\s+Design\\s+s\\.r\\.o\\.)",
+    "dodavatel_ico": "\\bI[ČC]O\\s*[:\\s]+([0-9]{8})",
+    "dodavatel_dic": "\\bDI[ČC]\\s*[:\\s]+([A-Z]{2}\\d{8,10})",
+    "dodavatel_adresa": "CreativeSpark\\s+Design\\s+s\\.r\\.o\\.\\s*(?:.*?\\n)?([^\\n]+?)\\s*(?=(?:I[ČC]O|DI[ČC]|VAT|Daňový|Faktura\\b))",
+    "platba_zpusob": "(?:Forma\\s*úhrady|Zp[uů]sob\\s*[uú]hrady|Zp[uů]sob\\s*platby)[:\\s]+([A-Za-zÁČĎÉĚÍŇÓŘŠŤÚŮÝŽa-záčďéěíňóřšťúůýž /+\\-]+)",
+    "banka_prijemce": "(?:BANKA|N[aá]zev\\s*Banky|Banka)[:\\s]+([A-Za-z0-9 .,'\\-_/]+)",
+    "ucet_prijemce": "(?:ÚČET|Číslo\\s*účtu|C[ií]slo\\s*u[čc]tu)[:\\s]+([0-9\\- ]{1,20}/[0-9]{3,6}|[A-Z]{2}[0-9A-Z ]{12,34})"
+  },
+  "supplier_defaults": {
+    "nazev": "CreativeSpark Design s.r.o.",
+    "ico": "75384902",
+    "dic": "CZ75384902",
+    "adresa": "Jungmannova 25, 110 00 Praha 1, Česká republika"
+  }
+}

@@ -10,11 +10,36 @@ def normalize_date(s):
     if not s:
         return None
     s = str(s).strip()
+    
+    # Specific handling for Czech date formats
+    # Pattern: DD.MM.YYYY or DD.M.YYYY (with single digit month)
+    czech_pattern = re.search(r"\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b", s)
+    if czech_pattern:
+        day, month, year = czech_pattern.groups()
+        try:
+            # Ensure month and day are zero-padded
+            dt = datetime(int(year), int(month), int(day))
+            return dt.strftime("%Y-%m-%d")
+        except Exception:
+            pass
+    
+    # Pattern: DD.M.YYYY (single digit month without leading zero)
+    czech_pattern_single = re.search(r"\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b", s)
+    if czech_pattern_single:
+        day, month, year = czech_pattern_single.groups()
+        try:
+            dt = datetime(int(year), int(month), int(day))
+            return dt.strftime("%Y-%m-%d")
+        except Exception:
+            pass
+    
     try:
         dt = dateparser.parse(s, dayfirst=True, yearfirst=False)
         return dt.strftime("%Y-%m-%d")
     except Exception:
         pass
+    
+    # Generic pattern for various date formats
     m = re.search(r"\b(\d{1,2})[.\-/ ](\d{1,2})[.\-/ ](\d{2,4})\b", s)
     if m:
         d, mth, y = m.groups()
