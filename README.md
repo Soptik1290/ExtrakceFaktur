@@ -5,6 +5,16 @@ Výsledkem je jednotný JSON s klíčovými informacemi (dodavatel, odběratel, 
 
 ---
 
+## 🚀 Novinky ve verzi 1.1.0
+- Upscaling obrázků s nízkým rozlišením → lepší čitelnost horších skenů.
+- Vylepšená detekce textu a **české diakritiky**.
+- Přesnější rozpoznávání částek.
+- Rozšířená validace extrahovaných dat.
+- Lepší **responsibilita** aplikace na mobilních zařízeních.
+- Opraven problém s detekcí **datumů**.
+
+---
+
 ## 🚀 Funkcionality
 - Nahrání faktury přes webové rozhraní (frontend).
 - Automatická extrakce dat pomocí backendu:
