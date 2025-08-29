@@ -1,4 +1,5 @@
 
+
 import re
 from .utils import normalize_date, parse_amount, first, pick_nearby, detect_currency
 
@@ -176,30 +177,17 @@ def extract_fields_heuristic(text: str) -> dict:
 
     vs = _detect_vs(joined, lines)
 
-    # 1) Try direct label→value capture on the whole text (robust to table layout)
-    def _date_after(label_regex: str):
-        m = re.search(label_regex + r"[\s:.]*?(" + DATE_PAT + r")", joined, re.I)
-        return m.group(1) if m else None
-
-    vyst = _date_after(r"datum\s+vystav(?:en[íi]|eni)")
-    splat = _date_after(r"datum\s+splatnosti")
-    duzp = _date_after(r"datum\s+zdanitel(?:n[ée]ho|neho)\s+pln[ěe]n[íi]")
-
-    # 2) If still missing, use line-window search and neighborhood pickers
-    if not vyst:
-        vyst = _find_label_value(lines, [r"datum vyst", r"vystaven", r"issue", r"datum vystavení", r"datum vystaveni"], DATE_PAT, 3) \
-            or pick_nearby(joined, ["vyst", "issue", "vystavení", "vystaveni"], DATE_PAT)
-    if not splat:
-        splat = _find_label_value(lines, [r"splatnost", r"due date", r"payment due", r"datum splatnosti", r"datum splatnosti"], DATE_PAT, 3) \
-            or pick_nearby(joined, ["splatnost", "due", "splatnost"], DATE_PAT)
-    if not duzp:
-        duzp = _find_label_value(lines, [
-                r"duzp", r"tax point", r"date of taxable",
-                r"datum uskutecnění zdanitelného plnění", r"datum uskutecneni zdanitelneho plneni",
-                r"zdanitelného plnění", r"zdanitelneho plneni", r"zdan\.\s*pln",
-                r"datum zdan\.?\s*pln", r"datum zdanitelneho plneni", r"datum zdanění plnění", r"datum zdaneni plneni"
-            ], DATE_PAT, 3) \
-            or pick_nearby(joined, ["duzp", r"tax point", "uskutecnění", "uskutecneni", "zdan", "plnění", "plneni"], DATE_PAT)
+    vyst = _find_label_value(lines, [r"datum vyst", r"vystaven", r"issue", r"datum vystavení", r"datum vystaveni"], DATE_PAT, 3) \
+        or pick_nearby(joined, ["vyst", "issue", "vystavení", "vystaveni"], DATE_PAT)
+    splat = _find_label_value(lines, [r"splatnost", r"due date", r"payment due", r"datum splatnosti", r"datum splatnosti"], DATE_PAT, 3) \
+        or pick_nearby(joined, ["splatnost", "due", "splatnost"], DATE_PAT)
+    duzp = _find_label_value(lines, [
+            r"duzp", r"tax point", r"date of taxable",
+            r"datum uskutecnění zdanitelného plnění", r"datum uskutecneni zdanitelneho plneni",
+            r"zdanitelného plnění", r"zdanitelneho plneni", r"zdan\.\s*pln",
+            r"datum zdan\.?\s*pln", r"datum zdanitelneho plneni", r"datum zdanění plnění", r"datum zdaneni plneni"
+        ], DATE_PAT, 3) \
+        or pick_nearby(joined, ["duzp", r"tax point", "uskutecnění", "uskutecneni", "zdan", "plnění", "plneni"], DATE_PAT)
 
     vyst = normalize_date(vyst); splat = normalize_date(splat); duzp = normalize_date(duzp)
 
