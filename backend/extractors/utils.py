@@ -194,6 +194,7 @@ def fix_czech_chars(text: str) -> str:
         
         # Opravy pro konkrétní firmy
         "CreativeSpark Design": "CreativeSpark Design s.r.o.",
+        "CreativeSpark Design s.r.o..": "CreativeSpark Design s.r.o.",
         
         # Opravy adres
         "Praha,": "Praha 1,",
@@ -243,10 +244,11 @@ def fix_czech_chars(text: str) -> str:
     result = re.sub(r'\bOaberatel\b', 's.r.o.', result)
     result = re.sub(r'\bS\.r\.0\.\b', 's.r.o.', result)
     
-    # Oprava nadbytečných teček v názvech firem
-    result = re.sub(r'\bs\.r\.o\.\.\b', 's.r.o.', result)
-    result = re.sub(r'\ba\.s\.\.\b', 'a.s.', result)
-    result = re.sub(r'\bspol\.\s*s\s*r\.o\.\.\b', 'spol. s r.o.', result)
+    # Oprava nadbytečných teček v názvech firem - více agresivní
+    result = re.sub(r's\.r\.o\.\.', 's.r.o.', result)  # Bez word boundary
+    result = re.sub(r'a\.s\.\.', 'a.s.', result)  # Bez word boundary
+    result = re.sub(r'spol\.\s*s\s*r\.o\.\.', 'spol. s r.o.', result)
+    result = re.sub(r'\.\.', '.', result)  # Obecně odstraň dvojité tečky
     
     # Detekce chybějících firemních přípon - pokud název obsahuje "Design", "Creative", "Tech" apod.
     # a nemá příponu, pravděpodobně je to firma

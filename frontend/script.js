@@ -2,7 +2,42 @@
 // --- Global state
 let lastData = null;
 
-// Toast helper
+// Mobilní detekce
+const isMobile = () => window.innerWidth <= 768;
+const isTouchDevice = () => 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+// Viewport height fix pro mobilní prohlížeče
+function fixViewportHeight() {
+  const vh = window.innerHeight * 0.01;
+  document.documentElement.style.setProperty('--vh', `${vh}px`);
+}
+
+// Inicializace mobilních optimalizací
+function initMobileOptimizations() {
+  fixViewportHeight();
+  
+  // Přepočet při změně orientace
+  window.addEventListener('orientationchange', () => {
+    setTimeout(fixViewportHeight, 100);
+  });
+  
+  // Přepočet při resize
+  window.addEventListener('resize', fixViewportHeight);
+  
+  // Prevence zoom při double tap na iOS
+  if (isTouchDevice()) {
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', (event) => {
+      const now = new Date().getTime();
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, false);
+  }
+}
+
+// Toast helper s mobilní optimalizací
 function toast(msg, type = 'success') {
   let el = document.getElementById('toast');
   if (!el) {
@@ -13,8 +48,11 @@ function toast(msg, type = 'success') {
   el.textContent = msg;
   el.className = `toast show ${type}`;
   
-  // Automaticky skrýt po 3 sekundách
-  setTimeout(() => { el.classList.remove('show'); }, 1300);
+  // Delší zobrazení na mobilech
+  const duration = isMobile() ? 2000 : 1300;
+  
+  // Automaticky skrýt
+  setTimeout(() => { el.classList.remove('show'); }, duration);
 }
 
 // Success overlay helper
@@ -255,6 +293,11 @@ async function doExport() {
 
 window.extract = extract;
 window.doExport = doExport;
+
+// Inicializace při načtení stránky
+document.addEventListener('DOMContentLoaded', () => {
+  initMobileOptimizations();
+});
 
 // Funkce pro zobrazení informací o souboru
 function displayFileInfo(file) {
